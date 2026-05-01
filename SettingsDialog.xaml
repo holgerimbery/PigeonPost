@@ -14,7 +14,7 @@
         ScrollViewer prevents content from being clipped on small windows.
         MaxHeight caps the scrollable area so the dialog never exceeds the screen.
     -->
-    <ScrollViewer VerticalScrollBarVisibility="Auto" MaxHeight="480">
+    <ScrollViewer VerticalScrollBarVisibility="Auto" MaxHeight="620">
         <StackPanel Spacing="20" Width="380" Padding="0,8,0,8">
 
             <!-- ── General ──────────────────────────────────────────────────── -->
