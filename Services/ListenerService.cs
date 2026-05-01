@@ -43,56 +43,136 @@ public sealed class ListenerService : IDisposable
 
     // ----------------------------------------------------------------- start / stop
 
+    // Wildcard prefix that covers every network interface and IP address on the machine.
+    // HTTP.sys requires a URL ACL reservation for this prefix unless the process is elevated.
+    private static readonly string WildcardPrefix = $"http://+:{Constants.Port}/";
+
     /// <summary>
     /// Registers HTTP prefixes and starts the accept loop on a background thread.
     ///
     /// <para>
-    /// Strategy: try to bind both <c>localhost</c> and every active LAN IPv4 address so
-    /// that remote devices on the local network can reach the API without any special
-    /// network configuration.  If that fails with "Access is denied" (Windows HTTP.sys
-    /// requires a URL ACL reservation or elevated privileges for non-loopback addresses),
-    /// the listener falls back to <c>localhost</c> only so the app still works for
-    /// local use.  To enable LAN access, run the app once as Administrator or register
-    /// a permanent ACL with:
-    /// <c>netsh http add urlacl url=http://+:{port}/ user=%USERNAME%</c>
+    /// Strategy:
+    /// <list type="number">
+    ///   <item>Try <c>http://+:PORT/</c> — works if the URL ACL is already registered
+    ///         or the process is elevated.</item>
+    ///   <item>If that fails, attempt a one-time URL ACL registration via an elevated
+    ///         <c>netsh</c> process (triggers a UAC prompt).  On success retry step 1.</item>
+    ///   <item>If elevation is declined or fails, fall back to <c>localhost</c> only.</item>
+    /// </list>
+    /// Once the URL ACL is registered it persists across reboots — UAC is only needed once.
     /// </para>
     /// </summary>
     public void Start()
     {
-        // First attempt: localhost + all active LAN IPv4 addresses.
-        _listener.Prefixes.Add($"http://localhost:{Constants.Port}/");
-        foreach (var ip in NetworkHelper.GetAllBindableIPv4())
-            _listener.Prefixes.Add($"http://{ip}:{Constants.Port}/");
-
-        if (!TryStartListener())
+        // ---- Attempt 1: wildcard prefix (works if URL ACL exists or running as admin) ----
+        _listener.Prefixes.Add(WildcardPrefix);
+        if (TryStartListener())
         {
-            // When HttpListener.Start() fails it leaves the listener in an unusable /
-            // partially-disposed state.  We must create a brand-new instance before
-            // changing the prefix list; attempting Prefixes.Clear() on the failed
-            // instance throws ObjectDisposedException and crashes the app.
-            try { _listener.Close(); } catch { /* already dead */ }
-            _listener = new HttpListener();
-            _listener.Prefixes.Add($"http://localhost:{Constants.Port}/");
-
-            if (!TryStartListener())
-                return;   // Even localhost failed — port probably in use.
-
-            _state.Emit(LogLevel.Warn,
-                $"Listening on localhost:{Constants.Port} only " +
-                $"(LAN binding requires admin or a URL ACL — see README)");
+            // Wildcard succeeded — all interfaces are bound.
+            FinishStart(lan: true);
+            return;
         }
 
+        // The failed Start() leaves the listener dead; create a fresh instance.
+        try { _listener.Close(); } catch { /* already dead */ }
+        _listener = new HttpListener();
+
+        // ---- Attempt 2: register URL ACL via elevated netsh, then retry ----
+        if (TryRegisterUrlAcl())
+        {
+            _listener.Prefixes.Add(WildcardPrefix);
+            if (TryStartListener())
+            {
+                FinishStart(lan: true);
+                return;
+            }
+            // netsh succeeded but Start still failed — should not happen; clean up.
+            try { _listener.Close(); } catch { }
+            _listener = new HttpListener();
+        }
+
+        // ---- Attempt 3: localhost-only fallback ----
+        _listener.Prefixes.Add($"http://localhost:{Constants.Port}/");
+        if (!TryStartListener())
+            return;   // Even localhost failed — port probably in use, give up.
+
+        FinishStart(lan: false);
+    }
+
+    /// <summary>
+    /// Tries to register <c>http://+:PORT/</c> as a URL ACL reservation for Everyone by
+    /// launching <c>netsh</c> with the <c>runas</c> verb, which triggers a UAC prompt.
+    /// Returns <c>true</c> if the reservation was created (or already existed).
+    /// </summary>
+    private bool TryRegisterUrlAcl()
+    {
+        try
+        {
+            var psi = new System.Diagnostics.ProcessStartInfo
+            {
+                FileName        = "netsh",
+                // "user=Everyone" works for all locales; the ACL is machine-wide.
+                Arguments       = $"http add urlacl url={WildcardPrefix} user=Everyone",
+                Verb            = "runas",   // triggers UAC elevation prompt
+                UseShellExecute = true,
+                WindowStyle     = System.Diagnostics.ProcessWindowStyle.Hidden,
+                CreateNoWindow  = true,
+            };
+
+            using var proc = System.Diagnostics.Process.Start(psi);
+            proc?.WaitForExit(10_000);   // wait up to 10 s for netsh to complete
+
+            // Exit code 0 = created; 183 = already exists — both are success.
+            var code = proc?.ExitCode ?? -1;
+            if (code is 0 or 183)
+            {
+                _state.Emit(LogLevel.Info, "URL ACL registered — LAN access enabled permanently");
+                return true;
+            }
+
+            _state.Emit(LogLevel.Warn, $"netsh urlacl registration returned exit code {code}");
+            return false;
+        }
+        catch (Exception ex)
+        {
+            // Typically Win32Exception with "The operation was canceled by the user" when
+            // the UAC prompt is dismissed, or an IO error if netsh is not found.
+            _state.Emit(LogLevel.Warn, $"URL ACL registration skipped: {ex.Message}");
+            return false;
+        }
+    }
+
+    /// <summary>
+    /// Starts the accept loop and emits the startup log line after the listener is bound.
+    /// </summary>
+    /// <param name="lan"><c>true</c> when the wildcard prefix is active (all interfaces reachable).</param>
+    private void FinishStart(bool lan)
+    {
         _cts = new CancellationTokenSource();
         _ = Task.Run(() => AcceptLoop(_cts.Token));
 
-        _state.Emit(LogLevel.Success,
-            $"Server started — saving files to {Constants.DownloadsFolder}");
+        if (lan)
+        {
+            var ip = NetworkHelper.GetPrimaryLocalIp();
+            _state.Emit(LogLevel.Success,
+                $"Server started on all interfaces — LAN: http://{ip}:{Constants.Port}/");
+        }
+        else
+        {
+            _state.Emit(LogLevel.Warn,
+                $"Listening on localhost:{Constants.Port} only " +
+                $"(UAC was declined — LAN access unavailable)");
+            _state.Emit(LogLevel.Info,
+                $"To enable LAN access run once as Administrator, or run: " +
+                $"netsh http add urlacl url=http://+:{Constants.Port}/ user=Everyone");
+        }
+        _state.Emit(LogLevel.Info,
+            $"Files saved to: {Constants.DownloadsFolder}");
     }
 
     /// <summary>
     /// Calls <see cref="HttpListener.Start()"/> and returns <c>true</c> on success.
-    /// On failure the error is logged and <c>false</c> is returned; the listener is
-    /// left in a stopped state so prefixes can be changed and a retry attempted.
+    /// Logs the error and returns <c>false</c> on failure without throwing.
     /// </summary>
     private bool TryStartListener()
     {
@@ -103,8 +183,9 @@ public sealed class ListenerService : IDisposable
         }
         catch (Exception ex)
         {
-            _state.Emit(LogLevel.Error,
-                $"Could not start HTTP listener on port {Constants.Port}: {ex.Message}");
+            // Access denied is expected the first time (no URL ACL); only log at Debug level.
+            _state.Emit(LogLevel.Info,
+                $"HttpListener.Start failed (will retry): {ex.Message}");
             return false;
         }
     }
