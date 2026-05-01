@@ -40,13 +40,54 @@ step-by-step setup instructions are in the [iOS Shortcuts wiki page](https://git
 - **Collapsible activity log** with colour-coded entries that adapt to the current theme
 - **Pause / Resume** — keeps the port open but returns `503` to all incoming requests
 - **Open Downloads** button
-- **Settings dialog** (⚙️ gear button) — configure the downloads folder, choose Light / Dark / System theme, toggle Start with Windows
+- **Settings dialog** (⚙️ gear button) — configure the downloads folder, choose Light / Dark / System theme, toggle Start with Windows, enable bearer-token authentication
+- **Bearer token authentication** — optional; generate a random token once, copy it to any client, toggle enforcement on/off without restarting the server
 - **Help button** (❓) — opens the GitHub repository documentation in your default browser
 - **Minimize to tray** — the close button hides the window; left-click the icon to restore
 - **Tray context menu**: Show window · Pause / Resume · Quit
 - **Start with Windows** — optional autostart toggle; app launches hidden to tray
 - **Smart network monitoring** — detects WiFi ↔ LAN switches, IP changes, and offline events; restarts the listener automatically on relevant changes
 - **Auto-update** — checks GitHub Releases on startup and every 24 hours; shows an in-app banner when a new version is available; one click installs and restarts
+
+---
+
+## Authentication
+
+PigeonPost includes optional **bearer token authentication** — disabled by default.
+
+### Enable it
+
+1. Open **Settings** (⚙️) → **Security**
+2. Flip **"Require bearer token authentication"** on
+3. Copy the token with the 📋 button
+4. Click **Save**
+
+Use **Regenerate** to issue a new token at any time (e.g. after sharing the old one with a device you no longer own). The toggle and regeneration take effect immediately without restarting the server.
+
+### Send the token from a client
+
+Add an `Authorization` header to every request:
+
+```
+Authorization: Bearer <your-token>
+```
+
+**curl example:**
+
+```bash
+curl -s -X POST http://192.168.1.x:2560/ \
+     -H "Authorization: Bearer <your-token>" \
+     -H "clipboard: send" \
+     -d "Hello from curl"
+```
+
+### Status codes
+
+| Code | Meaning |
+|------|---------|
+| `200` | Request accepted |
+| `401` | Missing or invalid bearer token (auth is enabled) |
+| `503` | Server is paused |
 
 ---
 
@@ -71,12 +112,12 @@ Full documentation is in the [project wiki](https://github.com/holgerimbery/Pige
 
 | Page | Description |
 |---|---|
-| [HTTP API Reference](https://github.com/holgerimbery/PigeonPost/wiki/HTTP-API-Reference) | Clipboard operations, file transfer, status codes, and curl examples |
+| [HTTP API Reference](https://github.com/holgerimbery/PigeonPost/wiki/HTTP-API-Reference) | Clipboard operations, file transfer, bearer authentication, status codes, and curl examples |
 | [iOS Shortcuts](https://github.com/holgerimbery/PigeonPost/wiki/iOS-Shortcuts) | Step-by-step Shortcuts setup for iPhone / iPad (English + German) |
 | [Remote Access](https://github.com/holgerimbery/PigeonPost/wiki/Remote-Access) | Reach PigeonPost from outside your home network using Tailscale |
 | [Build from Source](https://github.com/holgerimbery/PigeonPost/wiki/Build-from-Source) | Prerequisites, build & run, Velopack publish, project layout |
-| [How It Works](https://github.com/holgerimbery/PigeonPost/wiki/How-It-Works) | HTTP listener binding, network change handling, dark / light mode |
-| [Troubleshooting](https://github.com/holgerimbery/PigeonPost/wiki/Troubleshooting) | Common issues, fixes, and security notes |
+| [How It Works](https://github.com/holgerimbery/PigeonPost/wiki/How-It-Works) | HTTP listener binding, bearer auth, network change handling, dark / light mode |
+| [Troubleshooting](https://github.com/holgerimbery/PigeonPost/wiki/Troubleshooting) | Common issues, fixes, security notes, and 401 errors |
 
 ---
 

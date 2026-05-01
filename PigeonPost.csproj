@@ -6,9 +6,9 @@
     <TargetPlatformMinVersion>10.0.17763.0</TargetPlatformMinVersion>
     <RootNamespace>PigeonPost</RootNamespace>
     <AssemblyName>PigeonPost</AssemblyName>
-    <Version>1.2.0</Version>
-    <FileVersion>1.2.0.0</FileVersion>
-    <AssemblyVersion>1.2.0.0</AssemblyVersion>
+    <Version>1.3.0</Version>
+    <FileVersion>1.3.0.0</FileVersion>
+    <AssemblyVersion>1.3.0.0</AssemblyVersion>
     <Product>PigeonPost</Product>
     <Copyright>Copyright © 2026 Holger Imbery</Copyright>
     <ApplicationManifest>app.manifest</ApplicationManifest>
