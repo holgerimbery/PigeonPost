@@ -1,0 +1,15 @@
+# Build output
+bin/
+obj/
+
+# User-specific VS / Rider files
+*.user
+.vs/
+*.suo
+
+# Temp tray icon generated at runtime
+*.ico
+
+# NuGet
+*.nupkg
+packages/

@@ -1,0 +1,145 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Window
+    x:Class="PigeonPost.MainWindow"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:vm="using:PigeonPost.ViewModels"
+    xmlns:models="using:PigeonPost.Models"
+    Title="PigeonPost">
+
+    <Window.SystemBackdrop>
+        <MicaBackdrop Kind="BaseAlt"/>
+    </Window.SystemBackdrop>
+
+    <Grid x:Name="RootGrid" RowSpacing="12" Padding="24">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+        </Grid.RowDefinitions>
+
+        <!-- ============ Header ============ -->
+        <Grid Grid.Row="0">
+            <TextBlock Text="PigeonPost" FontSize="22" FontWeight="SemiBold"
+                       VerticalAlignment="Center"/>
+            <StackPanel Orientation="Horizontal" Spacing="8"
+                        HorizontalAlignment="Right" VerticalAlignment="Center">
+                <Ellipse Width="10" Height="10"
+                         Fill="{x:Bind ViewModel.StatusBrush, Mode=OneWay}"/>
+                <TextBlock Text="{x:Bind ViewModel.StatusText, Mode=OneWay}"
+                           VerticalAlignment="Center" FontSize="13"/>
+            </StackPanel>
+        </Grid>
+
+        <!-- ============ Address card ============ -->
+        <Border Grid.Row="1" Style="{StaticResource CardStyle}">
+            <Grid>
+                <StackPanel Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+                    <TextBlock Text="Listening on" Opacity="0.6" VerticalAlignment="Center"/>
+                    <TextBlock Text="{x:Bind ViewModel.ListenAddress, Mode=OneWay}"
+                               FontFamily="Consolas" FontWeight="SemiBold"
+                               Foreground="{ThemeResource AccentTextFillColorPrimaryBrush}"
+                               VerticalAlignment="Center"/>
+                </StackPanel>
+                <TextBlock HorizontalAlignment="Right" VerticalAlignment="Center"
+                           Opacity="0.6" FontSize="12"
+                           Text="{x:Bind ViewModel.DownloadsLine, Mode=OneTime}"/>
+            </Grid>
+        </Border>
+
+        <!-- ============ Stat cards ============ -->
+        <Grid Grid.Row="2" ColumnSpacing="10">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="*"/>
+            </Grid.ColumnDefinitions>
+
+            <Border Grid.Column="0" Style="{StaticResource CardStyle}">
+                <StackPanel>
+                    <TextBlock Style="{StaticResource StatValueStyle}"
+                               Text="{x:Bind ViewModel.FilesReceived, Mode=OneWay}"/>
+                    <TextBlock Style="{StaticResource StatLabelStyle}" Text="Files received"/>
+                </StackPanel>
+            </Border>
+
+            <Border Grid.Column="1" Style="{StaticResource CardStyle}">
+                <StackPanel>
+                    <TextBlock Style="{StaticResource StatValueStyle}"
+                               Text="{x:Bind ViewModel.ClipboardSends, Mode=OneWay}"/>
+                    <TextBlock Style="{StaticResource StatLabelStyle}" Text="Clipboard sends"/>
+                </StackPanel>
+            </Border>
+
+            <Border Grid.Column="2" Style="{StaticResource CardStyle}">
+                <StackPanel>
+                    <TextBlock Style="{StaticResource StatValueStyle}"
+                               Text="{x:Bind ViewModel.ClipboardReceives, Mode=OneWay}"/>
+                    <TextBlock Style="{StaticResource StatLabelStyle}" Text="Clipboard reads"/>
+                </StackPanel>
+            </Border>
+
+            <Border Grid.Column="3" Style="{StaticResource CardStyle}">
+                <StackPanel>
+                    <TextBlock Style="{StaticResource StatValueStyle}"
+                               Text="{x:Bind ViewModel.UptimeText, Mode=OneWay}"
+                               FontFamily="Consolas"/>
+                    <TextBlock Style="{StaticResource StatLabelStyle}" Text="Uptime"/>
+                </StackPanel>
+            </Border>
+        </Grid>
+
+        <!-- ============ Action buttons ============ -->
+        <Grid Grid.Row="3">
+            <StackPanel Orientation="Horizontal" Spacing="8">
+                <Button Content="{x:Bind ViewModel.PauseButtonText, Mode=OneWay}"
+                        Command="{x:Bind ViewModel.TogglePauseCommand}"/>
+                <Button Content="Open Downloads"
+                        Command="{x:Bind ViewModel.OpenDownloadsCommand}"/>
+            </StackPanel>
+            <Button Content="Hide to tray" HorizontalAlignment="Right"
+                    Command="{x:Bind ViewModel.HideToTrayCommand}"/>
+        </Grid>
+
+        <!-- ============ Activity log (collapsible) ============ -->
+        <Expander Grid.Row="4" HorizontalAlignment="Stretch"
+                  HorizontalContentAlignment="Stretch" IsExpanded="False">
+            <Expander.Header>
+                <Grid>
+                    <TextBlock Text="Activity log" FontWeight="SemiBold" VerticalAlignment="Center"/>
+                    <Button Content="Clear" HorizontalAlignment="Right"
+                            Margin="0,0,12,0" FontSize="12"
+                            Command="{x:Bind ViewModel.ClearLogCommand}"/>
+                </Grid>
+            </Expander.Header>
+
+            <ListView ItemsSource="{x:Bind ViewModel.LogEntries}"
+                      Height="240" SelectionMode="None"
+                      ScrollViewer.VerticalScrollBarVisibility="Auto"
+                      Background="{ThemeResource LayerOnAcrylicFillColorDefaultBrush}"
+                      CornerRadius="4" Padding="4">
+                <ListView.ItemTemplate>
+                    <DataTemplate x:DataType="models:LogEntry">
+                        <Grid ColumnSpacing="12" Padding="4,2">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="64"/>
+                                <ColumnDefinition Width="80"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <TextBlock Text="{x:Bind TimeText}" Opacity="0.5"
+                                       FontFamily="Consolas" FontSize="12"/>
+                            <TextBlock Grid.Column="1" Text="{x:Bind LevelLabel}"
+                                       Foreground="{x:Bind LevelBrush}"
+                                       FontFamily="Consolas" FontSize="12" FontWeight="SemiBold"/>
+                            <TextBlock Grid.Column="2" Text="{x:Bind Message}"
+                                       TextWrapping="Wrap" FontSize="12"/>
+                        </Grid>
+                    </DataTemplate>
+                </ListView.ItemTemplate>
+            </ListView>
+        </Expander>
+    </Grid>
+</Window>
