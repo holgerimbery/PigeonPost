@@ -73,7 +73,7 @@ public sealed partial class MainWindow : Window
         // Default window size — set to match user-preferred size (physical pixels).
         try
         {
-            AppWindow?.Resize(new Windows.Graphics.SizeInt32(1025, 495));
+            AppWindow?.Resize(new Windows.Graphics.SizeInt32(1428, 828));
         }
         catch { /* AppWindow may be unavailable on first launch in some hosts */ }
 
