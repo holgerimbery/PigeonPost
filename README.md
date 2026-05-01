@@ -288,6 +288,12 @@ einem Zeitstempel-Dateinamen in den Windows-Downloads-Ordner hoch.
 4. **Add Action** → search `Format Date` → tap it
    - **Date**: tap the variable button (`+`) → choose **Current Date**
    - **Format**: select **Custom** → type `yyyy-MM-dd_HH-mm-ss`
+
+> ⚠️ **Important — literal prefixes in custom date formats:**  
+> iOS Shortcuts uses ICU date-format codes where **every letter** has a special meaning — even `f`, `o`, `t`.  
+> If you want a literal prefix like `foto-`, wrap it in **single quotes**: `'foto-'yyyyMMdd-HHmmss`  
+> Without quotes, iOS expands those letters as format codes, producing unexpected characters that can break the URL.  
+> The safe default (no prefix) `yyyy-MM-dd_HH-mm-ss` always works without quoting.
 5. **Add Action** → search `Get Contents of URL` → tap it, configure:
    - **URL**: type `http://YOUR_PC_IP:2560?filename=` → tap `+` → choose **Formatted Date** → type `.jpg` directly after it  
      *(the full URL will look like `http://192.168.1.205:2560?filename=2026-05-01_13-00-00.jpg`)*
@@ -306,6 +312,12 @@ einem Zeitstempel-Dateinamen in den Windows-Downloads-Ordner hoch.
 4. **Aktion hinzufügen** → `Datum formatieren` suchen → auswählen
    - **Datum**: Variable-Taste (`+`) → **Aktuelles Datum** wählen
    - **Format**: **Benutzerdefiniert** → `yyyy-MM-dd_HH-mm-ss` eingeben
+
+> ⚠️ **Wichtig — Literale Präfixe in benutzerdefinierten Datumsformaten:**  
+> iOS Kurzbefehle verwendet ICU-Datumsformat-Codes, bei denen **jeder Buchstabe** eine Sonderbedeutung hat — auch `f`, `o`, `t`.  
+> Wenn du ein Präfix wie `foto-` verwenden möchtest, schreibe es in **einfachen Anführungszeichen**: `'foto-'yyyyMMdd-HHmmss`  
+> Ohne Anführungszeichen interpretiert iOS diese Buchstaben als Format-Codes und erzeugt unerwartete Zeichen, die die URL kaputtmachen können.  
+> Der sichere Standard (ohne Präfix) `yyyy-MM-dd_HH-mm-ss` funktioniert immer ohne Anführungszeichen.
 5. **Aktion hinzufügen** → `Inhalt der URL abrufen` suchen → auswählen, konfigurieren:
    - **URL**: `http://DEINE_PC_IP:2560?filename=` eingeben → `+` → **Formatiertes Datum** wählen → direkt danach `.jpg` eingeben  
      *(Ergebnis: `http://192.168.1.205:2560?filename=2026-05-01_13-00-00.jpg`)*
