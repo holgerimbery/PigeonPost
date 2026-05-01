@@ -8,9 +8,21 @@ PigeonPost is a lightweight Windows 11 tray application that exposes a simple
 local HTTP API for transferring files and clipboard content from any network-connected
 device to your Windows PC.
 
-Any HTTP-capable client can use it — automation tools like Apple Shortcuts or
-Android Tasker, command-line utilities like `curl`, scripts, or custom apps.
+Any HTTP-capable client can use it — automation tools like Android Tasker,
+command-line utilities like `curl`, scripts, or custom apps.
 No cloud service, no account, no setup beyond the app itself.
+
+The [HTTP API is fully documented in the wiki](https://github.com/holgerimbery/PigeonPost/wiki/HTTP-API-Reference) —
+making it straightforward to build a native companion app for Android, Linux, macOS,
+or any other platform.
+
+**iPhone and iPad users** can get started right away using Apple Shortcuts —
+step-by-step setup instructions are in the [iOS Shortcuts wiki page](https://github.com/holgerimbery/PigeonPost/wiki/iOS-Shortcuts).
+
+> **Coming soon — native iOS app:**  
+> A dedicated iOS companion app is in development. It will provide a full GUI for
+> all PigeonPost functions and includes a **Share Sheet extension**, so you can send
+> files and text directly from any app on your iPhone or iPad.
 
 <p align="center">
   <img src="Assets/PigeonPostGUI.jpg" alt="PigeonPostGui" width="600"/>
