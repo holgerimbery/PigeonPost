@@ -1,4 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!-- Copyright (c) 2026 Holger Imbery. All rights reserved. -->
+<!-- Licensed under the MIT License. See LICENSE in the project root for license information. -->
 <Window
     x:Class="PigeonPost.MainWindow"
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
@@ -82,6 +84,7 @@
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
         </Grid.RowDefinitions>
 
         <!-- ============ Header ============ -->
@@ -256,5 +259,12 @@
                 </ListView.ItemTemplate>
             </ListView>
         </Expander>
+
+        <!-- ============ Footer ============ -->
+        <TextBlock Grid.Row="5"
+                   Text="© 2026 Holger Imbery · MIT License"
+                   FontSize="11" Opacity="0.45"
+                   HorizontalAlignment="Center"
+                   Margin="0,6,0,0"/>
     </Grid>
 </Window>

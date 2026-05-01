@@ -1,4 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!-- Copyright (c) 2026 Holger Imbery. All rights reserved. -->
+<!-- Licensed under the MIT License. See LICENSE in the project root for license information. -->
 <Application
     x:Class="PigeonPost.App"
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
