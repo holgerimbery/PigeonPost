@@ -67,11 +67,10 @@ public sealed partial class MainWindow : Window
 
         // Set an initial window size that comfortably shows all elements:
         //   - 640 px wide  → above the 520 DIP AdaptiveTrigger threshold → 4-col stat cards
-        //   - 460 px tall  → fits header, address card, stat cards, buttons and expander header
-        // Values are physical pixels (device-independent at 100 % DPI / 96 ppi).
+        // Default window size — set to match user-preferred size (physical pixels).
         try
         {
-            AppWindow?.Resize(new Windows.Graphics.SizeInt32(940, 540));
+            AppWindow?.Resize(new Windows.Graphics.SizeInt32(1025, 495));
         }
         catch { /* AppWindow may be unavailable on first launch in some hosts */ }
 
