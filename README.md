@@ -340,21 +340,23 @@ einem Zeitstempel-Dateinamen in den Windows-Downloads-Ordner hoch.
 
 ### curl examples
 
-```bash
+> **PowerShell users:** use `curl.exe` (not `curl`, which is an alias for `Invoke-WebRequest`) and wrap `@file` in single quotes so PowerShell does not interpret `@` as the splatting operator.
+
+```powershell
 # Write text to clipboard
-curl -X POST http://192.168.1.5:2560 -H "clipboard: send" -d "Hello from curl"
+curl.exe -X POST http://192.168.1.5:2560 -H "clipboard: send" -d "Hello from curl"
 
 # Read clipboard
-curl -X POST http://192.168.1.5:2560 -H "clipboard: receive"
+curl.exe -X POST http://192.168.1.5:2560 -H "clipboard: receive"
 
 # Clear clipboard
-curl -X POST http://192.168.1.5:2560 -H "clipboard: clear"
+curl.exe -X POST http://192.168.1.5:2560 -H "clipboard: clear"
 
 # Upload a file (header — simple filenames only)
-curl -X POST http://192.168.1.5:2560 -H "filename: photo.jpg" --data-binary @photo.jpg
+curl.exe -X POST http://192.168.1.5:2560 -H "filename: photo.jpg" --data-binary '@photo.jpg'
 
 # Upload a file (query param — safe for any filename)
-curl -X POST "http://192.168.1.5:2560?filename=Foto%202026-05-01.jpg" --data-binary @photo.jpg
+curl.exe -X POST "http://192.168.1.5:2560?filename=Foto%202026-05-01.jpg" --data-binary '@photo.jpg'
 ```
 
 ---
