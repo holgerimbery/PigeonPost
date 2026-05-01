@@ -431,6 +431,12 @@ public sealed class ListenerService : IDisposable
     {
         var contentLength = ctx.Request.ContentLength64;
 
+        // Log the raw URL so mismatches between what iOS Shortcuts builds and
+        // what HTTP.sys delivers are visible in the activity log for debugging.
+        _state.Emit(LogLevel.Info,
+            $"File request — raw URL: {ctx.Request.Url?.PathAndQuery ?? "(null)"}  " +
+            $"filename param: \"{filename}\"");
+
         // Buffer the entire body into memory before writing to disk.
         using var ms = new MemoryStream();
         await ctx.Request.InputStream.CopyToAsync(ms);
@@ -455,6 +461,15 @@ public sealed class ListenerService : IDisposable
             _state.Emit(LogLevel.Error, "Invalid filename");
             await WriteAsync(ctx, 400, "Invalid filename");
             return;
+        }
+
+        // If the client sent only an extension with no stem (e.g. ".jpg") — which
+        // can happen when iOS Shortcuts drops the variable from the URL — fall back
+        // to a server-generated timestamp name so the file is still usable.
+        if (string.IsNullOrWhiteSpace(Path.GetFileNameWithoutExtension(safeName)))
+        {
+            var ext = Path.GetExtension(safeName); // e.g. ".jpg"
+            safeName = DateTimeOffset.Now.ToString("yyyy-MM-dd_HH-mm-ss") + ext;
         }
 
         var savePath = Path.Combine(Constants.DownloadsFolder, safeName);
