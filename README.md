@@ -139,9 +139,13 @@ The action is selected by a single custom request header.
 
 ### File transfer
 
-| Header | Request body | Response body | Description |
+The filename can be passed as a **header** or as a **URL query parameter**.  
+Use the query-parameter form from iOS Shortcuts — it avoids "invalid header" rejections caused by special characters (spaces, umlauts, date separators) in the filename.
+
+| Method | Example | Request body | Response body |
 |---|---|---|---|
-| `filename: <name>` | binary | `File uploaded successfully` | Saves the body as `<name>` in the Downloads folder |
+| Header | `POST /` + header `filename: photo.jpg` | binary | `File uploaded successfully` |
+| Query param *(recommended for Shortcuts)* | `POST /?filename=photo.jpg` | binary | `File uploaded successfully` |
 
 ### Status codes
 
@@ -182,8 +186,11 @@ curl -X POST http://192.168.1.5:2560 -H "clipboard: receive"
 # Clear clipboard
 curl -X POST http://192.168.1.5:2560 -H "clipboard: clear"
 
-# Upload a file
+# Upload a file (header — simple filenames only)
 curl -X POST http://192.168.1.5:2560 -H "filename: photo.jpg" --data-binary @photo.jpg
+
+# Upload a file (query param — safe for any filename)
+curl -X POST "http://192.168.1.5:2560?filename=Foto%202026-05-01.jpg" --data-binary @photo.jpg
 ```
 
 ---

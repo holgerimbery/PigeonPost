@@ -263,14 +263,19 @@ public sealed class ListenerService : IDisposable
                 return;
             }
 
-            var filename = ctx.Request.Headers["filename"];
+            // Accept filename from header OR query string (?filename=...).
+            // Query-string values are URL-encoded by iOS Shortcuts and decoded automatically
+            // by HttpListenerRequest, so special characters (spaces, umlauts, timestamps)
+            // never produce an "invalid header" rejection from HTTP.sys.
+            var filename = ctx.Request.Headers["filename"]
+                        ?? ctx.Request.QueryString["filename"];
             if (!string.IsNullOrEmpty(filename))
             {
                 await HandleFileAsync(ctx, filename);
                 return;
             }
 
-            // Neither expected header was present.
+            // Neither expected header/query param was present.
             _state.Emit(LogLevel.Error, "Bad request — missing filename or clipboard header");
             await WriteAsync(ctx, 400, "Bad request");
         }
