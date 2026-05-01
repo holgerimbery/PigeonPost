@@ -12,6 +12,10 @@ Any HTTP-capable client can use it — automation tools like Apple Shortcuts or
 Android Tasker, command-line utilities like `curl`, scripts, or custom apps.
 No cloud service, no account, no setup beyond the app itself.
 
+<p align="center">
+  <img src="Assets/PigeonPostGUI.jpg" alt="PigeonPostGui" width="600"/>
+</p>
+
 ---
 
 ## What you get
