@@ -71,7 +71,7 @@ public sealed partial class MainWindow : Window
         // Values are physical pixels (device-independent at 100 % DPI / 96 ppi).
         try
         {
-            AppWindow?.Resize(new Windows.Graphics.SizeInt32(640, 460));
+            AppWindow?.Resize(new Windows.Graphics.SizeInt32(940, 540));
         }
         catch { /* AppWindow may be unavailable on first launch in some hosts */ }
 
