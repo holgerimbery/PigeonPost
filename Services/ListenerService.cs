@@ -28,7 +28,9 @@ public sealed class ListenerService : IDisposable
 {
     private readonly AppState _state;
     private readonly DispatcherQueue _ui;
-    private readonly HttpListener _listener = new();
+    // Not readonly: after a failed Start() the HttpListener is left in an unusable state
+    // and must be replaced with a fresh instance for the localhost-only fallback retry.
+    private HttpListener _listener = new();
     private CancellationTokenSource? _cts;
 
     /// <param name="state">Shared application state (counters, pause flag, log event).</param>
@@ -64,8 +66,12 @@ public sealed class ListenerService : IDisposable
 
         if (!TryStartListener())
         {
-            // Fall back: localhost only (always works without elevation).
-            _listener.Prefixes.Clear();
+            // When HttpListener.Start() fails it leaves the listener in an unusable /
+            // partially-disposed state.  We must create a brand-new instance before
+            // changing the prefix list; attempting Prefixes.Clear() on the failed
+            // instance throws ObjectDisposedException and crashes the app.
+            try { _listener.Close(); } catch { /* already dead */ }
+            _listener = new HttpListener();
             _listener.Prefixes.Add($"http://localhost:{Constants.Port}/");
 
             if (!TryStartListener())
