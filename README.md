@@ -372,4 +372,6 @@ PigeonPost follows the Windows system colour mode automatically:
 
 ## License
 
-Reference implementation; reuse freely.
+Copyright (c) 2026 Holger Imbery
+
+Licensed under the **MIT License** — see the [LICENSE](LICENSE) file for the full text.
