@@ -29,7 +29,7 @@ No cloud service, no account, no setup beyond the app itself.
 - **Tray context menu**: Show window · Pause / Resume · Quit
 - **Start with Windows** — optional autostart toggle; app launches hidden to tray
 - **Smart network monitoring** — detects WiFi ↔ LAN switches, IP changes, and offline events; restarts the listener automatically on relevant changes
-- **Auto-update** — checks GitHub Releases on startup and shows an in-app banner when a new version is available; one click installs and restarts
+- **Auto-update** — checks GitHub Releases on startup and every 24 hours; shows an in-app banner when a new version is available; one click installs and restarts
 
 ---
 

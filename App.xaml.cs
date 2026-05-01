@@ -102,9 +102,9 @@ public partial class App : Application
         IpMonitor.NetworkChanged += OnNetworkChanged;
         IpMonitor.Start();
 
-        // Check for updates in the background — never block startup.
-        // Result is surfaced as a banner in the UI via ViewModel.NotifyUpdateAvailable().
+        // Check for updates at startup, then every 24 hours while the app is running.
         _ = CheckForUpdatesAsync();
+        StartPeriodicUpdateCheck();
     }
 
     /// <summary>
@@ -117,6 +117,22 @@ public partial class App : Application
         if (update is null) return;
 
         ViewModel?.NotifyUpdateAvailable(update.TargetFullRelease.Version.ToString());
+    }
+
+    /// <summary>
+    /// Starts a 24-hour repeating timer that re-checks for updates while the app is running.
+    /// The timer is owned by the UI thread's DispatcherQueue so it stays alive as long as
+    /// the window is open without needing a separate background thread.
+    /// </summary>
+    private void StartPeriodicUpdateCheck()
+    {
+        if (_window is null) return;
+
+        var timer = _window.DispatcherQueue.CreateTimer();
+        timer.Interval = TimeSpan.FromHours(24);
+        timer.IsRepeating = true;
+        timer.Tick += (_, _) => _ = CheckForUpdatesAsync();
+        timer.Start();
     }
 
     /// <summary>
