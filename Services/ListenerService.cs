@@ -157,7 +157,7 @@ public sealed class ListenerService : IDisposable
 
         if (lan)
         {
-            var ip = NetworkHelper.GetPrimaryLocalIp();
+            var ip = NetworkHelper.GetNetworkState().Ip;
             _state.Emit(LogLevel.Success,
                 $"Server started on all interfaces — LAN: http://{ip}:{Constants.Port}/");
         }

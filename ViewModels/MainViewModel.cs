@@ -77,7 +77,7 @@ public partial class MainViewModel : ObservableObject
         _state = state;
         _ui    = ui;
 
-        ListenAddress = $"http://{NetworkHelper.GetPrimaryLocalIp()}:{Constants.Port}";
+        ListenAddress = $"http://{NetworkHelper.GetNetworkState().Ip}:{Constants.Port}";
         DownloadsLine = $"Files saved to:  {Constants.DownloadsFolder}";
 
         // Subscribe to events raised by the background HTTP listener thread.

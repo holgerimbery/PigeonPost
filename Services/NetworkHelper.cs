@@ -9,6 +9,19 @@ using System.Net.Sockets;
 
 namespace PigeonPost.Services;
 
+/// <summary>Describes which physical medium provides the active network connection.</summary>
+public enum NetworkInterfaceKind
+{
+    /// <summary>No usable network interface is up (offline).</summary>
+    None,
+
+    /// <summary>The primary interface is a wireless (802.11 Wi-Fi) adapter.</summary>
+    WiFi,
+
+    /// <summary>The primary interface is a wired Ethernet (or virtual) adapter.</summary>
+    Ethernet,
+}
+
 /// <summary>
 /// Utility methods for discovering the local machine IP addresses that
 /// the HTTP listener should bind to.
@@ -16,25 +29,41 @@ namespace PigeonPost.Services;
 public static class NetworkHelper
 {
     /// <summary>
-    /// Returns the outbound IPv4 address the OS would use to reach the internet.
-    /// This is a best-effort "primary" IP used purely for display in the dashboard;
-    /// it is not guaranteed to be reachable from other devices on all network topologies.
+    /// Returns the current primary IPv4 address together with the kind of interface
+    /// it belongs to (Wi-Fi, Ethernet, or None when offline).
+    ///
+    /// <para>
+    /// Wi-Fi adapters are preferred when both types are simultaneously active so the
+    /// result is deterministic in mixed environments.
+    /// </para>
     /// </summary>
-    public static string GetPrimaryLocalIp()
+    public static (string Ip, NetworkInterfaceKind Kind) GetNetworkState()
     {
-        try
+        string? wifiIp = null;
+        string? etherIp = null;
+
+        foreach (var nic in NetworkInterface.GetAllNetworkInterfaces())
         {
-            // Connect a UDP socket (no packets actually sent) to force the OS to
-            // select the default outbound interface, then read its local address.
-            using var s = new Socket(AddressFamily.InterNetwork, SocketType.Dgram, 0);
-            s.Connect("8.8.8.8", 80);
-            var ep = (IPEndPoint?)s.LocalEndPoint;
-            return ep?.Address.ToString() ?? "127.0.0.1";
+            if (nic.OperationalStatus != OperationalStatus.Up) continue;
+            if (nic.NetworkInterfaceType == NetworkInterfaceType.Loopback) continue;
+            if (nic.NetworkInterfaceType == NetworkInterfaceType.Tunnel) continue;
+
+            foreach (var ua in nic.GetIPProperties().UnicastAddresses)
+            {
+                if (ua.Address.AddressFamily != AddressFamily.InterNetwork) continue;
+
+                var ip = ua.Address.ToString();
+                if (nic.NetworkInterfaceType == NetworkInterfaceType.Wireless80211)
+                    wifiIp ??= ip;     // first Wi-Fi address wins
+                else
+                    etherIp ??= ip;   // first Ethernet/other address wins
+            }
         }
-        catch
-        {
-            return "127.0.0.1";
-        }
+
+        // Prefer Wi-Fi when both are present; return None + loopback when offline.
+        if (wifiIp  != null) return (wifiIp,  NetworkInterfaceKind.WiFi);
+        if (etherIp != null) return (etherIp, NetworkInterfaceKind.Ethernet);
+        return ("127.0.0.1", NetworkInterfaceKind.None);
     }
 
     /// <summary>

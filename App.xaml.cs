@@ -79,38 +79,99 @@ public partial class App : Application
 
         // Start the IP monitor; restart the listener and notify the user on change.
         IpMonitor = new IpMonitorService();
-        IpMonitor.IpChanged += OnIpChanged;
+        IpMonitor.NetworkChanged += OnNetworkChanged;
         IpMonitor.Start();
     }
 
     /// <summary>
-    /// Called on a thread-pool thread when the primary IP address changes.
-    /// Restarts the HTTP listener so it binds to the new address, updates the UI,
-    /// logs the event, and shows a Windows toast notification.
+    /// Called on a thread-pool thread when the network state changes.
+    /// Reacts differently depending on the kind of transition:
+    ///
+    /// <list type="bullet">
+    ///   <item><term>WentOffline</term>      <description>Warn only — server cannot bind without a routable address.</description></item>
+    ///   <item><term>CameOnline</term>       <description>Restart listener on new address, notify user.</description></item>
+    ///   <item><term>InterfaceSwitched</term><description>Restart on new address (WiFi ↔ LAN), notify user.</description></item>
+    ///   <item><term>IpChanged</term>        <description>Restart on new address (DHCP renewal), notify user.</description></item>
+    /// </list>
     /// </summary>
-    private void OnIpChanged(object? sender, IpChangedEventArgs e)
+    private void OnNetworkChanged(object? sender, NetworkChangedEventArgs e)
     {
-        // Restart the listener so it binds to the new interface/address.
-        Listener?.Restart();
+        switch (e.ChangeKind)
+        {
+            // ── No connectivity ──────────────────────────────────────────────
+            case NetworkChangeKind.WentOffline:
+                State.Emit(LogLevel.Error,
+                    $"Network lost ({KindLabel(e.PreviousKind)} was {e.PreviousIp}) · " +
+                    "Server paused — waiting for network to return.");
+                ShowToast(
+                    "⚠️ PigeonPost — Network Lost",
+                    $"The {KindLabel(e.PreviousKind)} connection ({e.PreviousIp}) was disconnected.",
+                    "The server is paused. It will restart automatically when a network returns.");
+                break;
 
-        // Update the address card in the UI.
-        ViewModel?.UpdateListenAddress(e.NewIp);
+            // ── Came back online ─────────────────────────────────────────────
+            case NetworkChangeKind.CameOnline:
+                Listener?.Restart();
+                ViewModel?.UpdateListenAddress(e.NewIp);
+                State.Emit(LogLevel.Warn,
+                    $"Network restored ({KindLabel(e.NewKind)} {e.NewIp}) · Server restarted.");
+                ShowToast(
+                    "✅ PigeonPost — Network Restored",
+                    $"Connected via {KindLabel(e.NewKind)}: http://{e.NewIp}:{Constants.Port}/",
+                    "The server was restarted automatically.");
+                break;
 
-        // Log the change so the user can see it in the activity log.
-        State.Emit(LogLevel.Warn,
-            $"IP address changed: {e.PreviousIp} → {e.NewIp} · Server restarted automatically");
+            // ── WiFi ↔ Ethernet switch ───────────────────────────────────────
+            case NetworkChangeKind.InterfaceSwitched:
+                Listener?.Restart();
+                ViewModel?.UpdateListenAddress(e.NewIp);
+                State.Emit(LogLevel.Warn,
+                    $"Interface switched: {KindLabel(e.PreviousKind)} ({e.PreviousIp}) → " +
+                    $"{KindLabel(e.NewKind)} ({e.NewIp}) · Server restarted.");
+                ShowToast(
+                    $"🔄 PigeonPost — Switched to {KindLabel(e.NewKind)}",
+                    $"New address: http://{e.NewIp}:{Constants.Port}/",
+                    $"Was on {KindLabel(e.PreviousKind)} ({e.PreviousIp}). Server restarted.");
+                break;
 
-        // Show a Windows toast notification (works even when the window is minimised to tray).
+            // ── IP address changed (same interface) ──────────────────────────
+            case NetworkChangeKind.IpChanged:
+                Listener?.Restart();
+                ViewModel?.UpdateListenAddress(e.NewIp);
+                State.Emit(LogLevel.Warn,
+                    $"{KindLabel(e.NewKind)} IP changed: {e.PreviousIp} → {e.NewIp} · " +
+                    "Server restarted.");
+                ShowToast(
+                    $"📡 PigeonPost — {KindLabel(e.NewKind)} IP Changed",
+                    $"New address: http://{e.NewIp}:{Constants.Port}/",
+                    $"Previous: {e.PreviousIp}. Server restarted.");
+                break;
+        }
+    }
+
+    /// <summary>Returns a human-readable label for a <see cref="NetworkInterfaceKind"/>.</summary>
+    private static string KindLabel(NetworkInterfaceKind kind) => kind switch
+    {
+        NetworkInterfaceKind.WiFi     => "Wi-Fi",
+        NetworkInterfaceKind.Ethernet => "Ethernet",
+        _                             => "Network",
+    };
+
+    /// <summary>
+    /// Shows a Windows toast notification with up to three lines of text.
+    /// Failures are silently swallowed — notification failure must never crash the app.
+    /// </summary>
+    private static void ShowToast(string title, string line1, string line2)
+    {
         try
         {
             var notification = new AppNotificationBuilder()
-                .AddText("PigeonPost — Network Change Detected")
-                .AddText($"New address: http://{e.NewIp}:{Constants.Port}/")
-                .AddText("The server was restarted automatically.")
+                .AddText(title)
+                .AddText(line1)
+                .AddText(line2)
                 .BuildNotification();
-
             AppNotificationManager.Default.Show(notification);
         }
-        catch { /* notification failure must never crash the app */ }
+        catch { /* notifications unavailable */ }
     }
 }
