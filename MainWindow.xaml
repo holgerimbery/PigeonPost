@@ -5,6 +5,7 @@
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:vm="using:PigeonPost.ViewModels"
     xmlns:models="using:PigeonPost.Models"
+    xmlns:conv="using:PigeonPost.Converters"
     Title="PigeonPost">
 
     <Window.SystemBackdrop>
@@ -12,6 +13,15 @@
     </Window.SystemBackdrop>
 
     <Grid x:Name="RootGrid" RowSpacing="12" Padding="24">
+        <!-- Grid-scoped resources: converter instances used in the DataTemplate below. -->
+        <!-- NOTE: The converter MUST live on a FrameworkElement (Grid, not Window), because the
+             WinUI 3 XAML compiler generates SetConverterLookupRoot(FrameworkElement) and passes
+             `this` (the Window). Window does not extend FrameworkElement in WinUI 3, so putting
+             the resource on Window.Resources causes a CS1503 compile error. Putting it here on
+             the root Grid is safe. -->
+        <Grid.Resources>
+            <conv:HexColorConverter x:Key="HexColorConverter"/>
+        </Grid.Resources>
 
         <VisualStateManager.VisualStateGroups>
             <VisualStateGroup x:Name="StatCardLayout">
@@ -215,18 +225,30 @@
                       Background="{ThemeResource LayerOnAcrylicFillColorDefaultBrush}"
                       CornerRadius="4" Padding="4">
                 <ListView.ItemTemplate>
-                    <DataTemplate x:DataType="models:LogEntry">
+                        <DataTemplate x:DataType="models:LogEntry">
                         <Grid ColumnSpacing="12" Padding="4,2">
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition Width="64"/>
                                 <ColumnDefinition Width="80"/>
                                 <ColumnDefinition Width="*"/>
                             </Grid.ColumnDefinitions>
+                            <!-- Timestamp column -->
                             <TextBlock Text="{x:Bind TimeText}" Opacity="0.5"
                                        FontFamily="Consolas" FontSize="12"/>
+                            <!--
+                                Level label foreground:
+                                Must use {Binding} (not {x:Bind}) with the converter because
+                                {x:Bind Converter=} generates SetConverterLookupRoot(this) in the
+                                Window's code-behind, and Window does NOT extend FrameworkElement
+                                in WinUI 3 — causing a CS1503 compile error.  {Binding} uses
+                                runtime resource lookup and avoids that generated cast entirely.
+                                HexColorConverter converts the "#rrggbb" string from LevelColor
+                                into a SolidColorBrush on the UI thread.
+                            -->
                             <TextBlock Grid.Column="1" Text="{x:Bind LevelLabel}"
-                                       Foreground="{x:Bind LevelBrush}"
+                                       Foreground="{Binding LevelColor, Converter={StaticResource HexColorConverter}}"
                                        FontFamily="Consolas" FontSize="12" FontWeight="SemiBold"/>
+                            <!-- Message column -->
                             <TextBlock Grid.Column="2" Text="{x:Bind Message}"
                                        TextWrapping="Wrap" FontSize="12"/>
                         </Grid>

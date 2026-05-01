@@ -1,14 +1,12 @@
 using System;
-using Microsoft.UI.Xaml;
-using Microsoft.UI.Xaml.Media;
-using MUC = Microsoft.UI.Colors;
 
 namespace PigeonPost.Models;
 
 /// <summary>
 /// Immutable record of a single activity-log event.
-/// Instances are created on background threads and data-bound directly in the ListView,
-/// so all computed properties must be thread-safe and side-effect-free.
+/// Instances are created on background threads and data-bound directly in the ListView.
+/// All computed properties are pure (no UI-thread dependencies) so they are safe to
+/// evaluate on any thread.
 /// </summary>
 public sealed class LogEntry
 {
@@ -33,7 +31,7 @@ public sealed class LogEntry
     /// <summary>Formatted timestamp shown in the first column of each log row.</summary>
     public string TimeText => At.LocalDateTime.ToString("HH:mm:ss");
 
-    /// <summary>Fixed-width label shown in the second column, colour-coded by level.</summary>
+    /// <summary>Fixed-width label shown in the second column.</summary>
     public string LevelLabel => Level switch
     {
         LogLevel.File      => "FILE",
@@ -46,41 +44,21 @@ public sealed class LogEntry
     };
 
     /// <summary>
-    /// Foreground brush applied to the level label, colour-coded by log level.
-    /// Looks up the brush from <c>Application.Current.Resources</c> so it automatically
-    /// returns the Light or Dark variant that matches the current Windows theme.
-    /// Falls back to hardcoded colours if the resource dictionary is not yet loaded.
+    /// Hex colour string for the level label foreground.
+    /// Returns a value safe for use with <c>x:Bind</c> in a DataTemplate without
+    /// touching any WinUI / XAML types — avoids the threading and resource-lookup
+    /// issues that arise when returning a <c>Brush</c> from inside a compiled binding.
+    /// The XAML side converts this to a <see cref="Microsoft.UI.Xaml.Media.SolidColorBrush"/>
+    /// via <c>HexColorConverter</c>.
+    /// Light-mode colours are used; they look fine on both light and dark Mica backgrounds.
     /// </summary>
-    public Brush LevelBrush
+    public string LevelColor => Level switch
     {
-        get
-        {
-            var key = Level switch
-            {
-                LogLevel.File      => "LogFileBrush",
-                LogLevel.Clipboard => "LogClipboardBrush",
-                LogLevel.Warn      => "LogWarnBrush",
-                LogLevel.Error     => "LogErrorBrush",
-                LogLevel.Success   => "LogSuccessBrush",
-                _                  => "LogInfoBrush",
-            };
-
-            // TryGetValue on ResourceDictionary with ThemeDictionaries returns
-            // the variant for the currently active theme (Light or Dark).
-            if (Application.Current?.Resources.TryGetValue(key, out var brushObj) == true
-                && brushObj is Brush b)
-                return b;
-
-            // Fallback: hardcoded colours used before XAML resources are fully loaded.
-            return new SolidColorBrush(Level switch
-            {
-                LogLevel.File      => MUC.MediumPurple,
-                LogLevel.Clipboard => MUC.DodgerBlue,
-                LogLevel.Warn      => MUC.Goldenrod,
-                LogLevel.Error     => MUC.OrangeRed,
-                LogLevel.Success   => MUC.SeaGreen,
-                _                  => MUC.Gray,
-            });
-        }
-    }
+        LogLevel.File      => "#8250df",   // purple
+        LogLevel.Clipboard => "#0969da",   // blue
+        LogLevel.Warn      => "#9a6700",   // amber
+        LogLevel.Error     => "#cf222e",   // red
+        LogLevel.Success   => "#1a7f37",   // green
+        _                  => "#57606a",   // grey  (Info)
+    };
 }

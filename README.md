@@ -62,6 +62,7 @@ dotnet publish PigeonPost.csproj -c Release -r win-x64 ^
     --self-contained true ^
     /p:WindowsAppSdkSelfContained=true ^
     /p:PublishSingleFile=true ^
+    /p:EnableMsixTooling=true ^
     /p:PublishReadyToRun=false
 ```
 

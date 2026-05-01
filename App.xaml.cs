@@ -1,3 +1,5 @@
+using System;
+using System.IO;
 using Microsoft.UI.Xaml;
 using PigeonPost.Services;
 using PigeonPost.ViewModels;
@@ -28,6 +30,19 @@ public partial class App : Application
 
     public App()
     {
+        // Catch any unhandled exception (including XAML parse errors thrown after
+        // InitializeComponent) and write them to a temp file before the process dies.
+        this.UnhandledException += (_, e) =>
+        {
+            try
+            {
+                var log = Path.Combine(Path.GetTempPath(), "pigeonpost-crash.txt");
+                File.WriteAllText(log, $"{DateTimeOffset.Now}\n\n{e.Exception}");
+            }
+            catch { /* logging must never throw */ }
+            e.Handled = false; // let the default handler terminate the app
+        };
+
         InitializeComponent();
     }
 
