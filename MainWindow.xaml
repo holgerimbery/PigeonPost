@@ -144,9 +144,9 @@
 
                 <!-- Row 1: downloads folder path; truncated with tooltip for long paths -->
                 <TextBlock Grid.Row="1" Opacity="0.6" FontSize="12"
-                           Text="{x:Bind ViewModel.DownloadsLine, Mode=OneTime}"
+                           Text="{x:Bind ViewModel.DownloadsLine, Mode=OneWay}"
                            TextTrimming="CharacterEllipsis"
-                           ToolTipService.ToolTip="{x:Bind ViewModel.DownloadsLine, Mode=OneTime}"/>
+                           ToolTipService.ToolTip="{x:Bind ViewModel.DownloadsLine, Mode=OneWay}"/>
             </Grid>
         </Border>
 
@@ -211,14 +211,14 @@
                 <Button Content="Open Downloads"
                         Command="{x:Bind ViewModel.OpenDownloadsCommand}"/>
             </StackPanel>
-            <!-- Right-side controls: autostart toggle + hide-to-tray button -->
-            <StackPanel Orientation="Horizontal" Spacing="16"
+            <!-- Right-side controls: settings gear + hide-to-tray button -->
+            <StackPanel Orientation="Horizontal" Spacing="8"
                         HorizontalAlignment="Right" VerticalAlignment="Center">
-                <ToggleSwitch IsOn="{x:Bind ViewModel.AutostartEnabled, Mode=TwoWay}"
-                              Header="Start with Windows"
-                              OffContent="" OnContent=""
-                              MinWidth="0" Margin="0,0,0,-4"
-                              VerticalAlignment="Center"/>
+                <!-- ⚙️ opens the Settings ContentDialog -->
+                <Button x:Name="SettingsButton" Click="SettingsButton_Click"
+                        ToolTipService.ToolTip="Settings">
+                    <FontIcon Glyph="&#xE713;" FontSize="16"/>
+                </Button>
                 <Button Content="Hide to tray"
                         Command="{x:Bind ViewModel.HideToTrayCommand}"/>
             </StackPanel>

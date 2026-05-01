@@ -42,6 +42,7 @@ public sealed partial class MainWindow : Window
 
     private TaskbarIcon? _trayIcon;
     private MenuFlyoutItem? _pauseMenuItem;
+    private bool _isQuitting;
 
     public MainWindow(AppState state)
     {
@@ -50,6 +51,9 @@ public sealed partial class MainWindow : Window
 
         ViewModel.HostWindow = this;
         Title = "PigeonPost";
+
+        // Apply the saved theme before anything else is rendered.
+        ApplyTheme(SettingsService.Current.Theme);
 
         // Point the window/taskbar icon at the static pigeon+envelope ICO.
         try
@@ -88,12 +92,19 @@ public sealed partial class MainWindow : Window
     // ---------------------------------------------------------------- close / hide
 
     /// <summary>
+    /// Called before a programmatic quit so the closing handler knows not to
+    /// cancel the event (which would just hide the window again).
+    /// </summary>
+    public void SetQuitting() => _isQuitting = true;
+
+    /// <summary>
     /// Cancels the window-close event and hides the window instead,
     /// so the app continues running in the system tray.
     /// </summary>
     private void OnAppWindowClosing(Microsoft.UI.Windowing.AppWindow sender,
                                     Microsoft.UI.Windowing.AppWindowClosingEventArgs args)
     {
+        if (_isQuitting) return;   // real quit — let the close proceed
         args.Cancel = true;
         sender.Hide();
     }
@@ -116,6 +127,14 @@ public sealed partial class MainWindow : Window
         };
 
         _trayIcon.ForceCreate();
+
+        // Once the visual tree is ready, give the ContextFlyout a XamlRoot so that
+        // click events route through the WinUI event system on the correct thread.
+        RootGrid.Loaded += (_, _) =>
+        {
+            if (_trayIcon?.ContextFlyout != null)
+                _trayIcon.ContextFlyout.XamlRoot = RootGrid.XamlRoot;
+        };
     }
 
     /// <summary>
@@ -130,24 +149,26 @@ public sealed partial class MainWindow : Window
         var menu = new MenuFlyout();
 
         var show = new MenuFlyoutItem { Text = "Show window" };
-        show.Click += (_, _) => ViewModel.ShowWindowCommand.Execute(null);
+        show.Click += (_, _) =>
+            DispatcherQueue.TryEnqueue(() => ViewModel.ShowWindowCommand.Execute(null));
         menu.Items.Add(show);
 
         // "Pause" / "Resume" label mirrors the main-window button text.
         _pauseMenuItem = new MenuFlyoutItem { Text = ViewModel.PauseButtonText };
-        _pauseMenuItem.Click += (_, _) => ViewModel.TogglePauseCommand.Execute(null);
+        _pauseMenuItem.Click += (_, _) =>
+            DispatcherQueue.TryEnqueue(() => ViewModel.TogglePauseCommand.Execute(null));
         menu.Items.Add(_pauseMenuItem);
 
         menu.Items.Add(new MenuFlyoutSeparator());
 
         var quit = new MenuFlyoutItem { Text = "Quit" };
         quit.Click += (_, _) =>
-        {
-            // Dispose the tray icon before exiting so the icon is removed from the
-            // taskbar immediately and does not linger as a ghost icon.
-            _trayIcon?.Dispose();
-            Application.Current.Exit();
-        };
+            DispatcherQueue.TryEnqueue(() =>
+            {
+                _isQuitting = true;
+                _trayIcon?.Dispose();
+                Application.Current.Exit();
+            });
         menu.Items.Add(quit);
 
         return menu;
@@ -177,6 +198,47 @@ public sealed partial class MainWindow : Window
                     ? "PigeonPost — Paused"
                     : "PigeonPost — Running";
                 break;
+        }
+    }
+
+    // ---------------------------------------------------------------- theme
+
+    /// <summary>
+    /// Applies the requested theme to the root grid.
+    /// "System" (default) follows the Windows dark/light setting automatically.
+    /// </summary>
+    public void ApplyTheme(string theme) =>
+        RootGrid.RequestedTheme = theme switch
+        {
+            "Light" => ElementTheme.Light,
+            "Dark"  => ElementTheme.Dark,
+            _       => ElementTheme.Default,   // "System" → follow Windows
+        };
+
+    // ---------------------------------------------------------------- settings
+
+    /// <summary>
+    /// Opens the Settings ContentDialog. Applies the selected theme live for preview;
+    /// reverts on Cancel, persists on Save and refreshes the downloads label.
+    /// </summary>
+    private async void SettingsButton_Click(object sender, RoutedEventArgs e)
+    {
+        var dialog = new SettingsDialog(this, ApplyTheme)
+        {
+            XamlRoot = RootGrid.XamlRoot,
+        };
+
+        var result = await dialog.ShowAsync();
+
+        if (result == ContentDialogResult.None)
+        {
+            // User cancelled — revert to the theme that was active before opening.
+            ApplyTheme(dialog.OriginalTheme);
+        }
+        else
+        {
+            // User saved — refresh the downloads-folder label in the ViewModel.
+            ViewModel.RefreshDownloadsLine();
         }
     }
 

@@ -1,8 +1,7 @@
 // Copyright (c) 2026 Holger Imbery. All rights reserved.
 // Licensed under the MIT License. See LICENSE in the project root for license information.
 
-using System;
-using System.IO;
+using PigeonPost.Services;
 
 namespace PigeonPost;
 
@@ -15,11 +14,9 @@ public static class Constants
     public const int Port = 2560;
 
     /// <summary>
-    /// Absolute path to the current user's Downloads folder.
-    /// Files sent via the API are saved here.
-    /// On most Windows systems this resolves to %USERPROFILE%\Downloads.
+    /// Absolute path to the folder where received files are saved.
+    /// Delegates to <see cref="SettingsService.Current"/> so the value updates
+    /// immediately after the user changes it in the Settings dialog.
     /// </summary>
-    public static string DownloadsFolder { get; } = Path.Combine(
-        Environment.GetFolderPath(Environment.SpecialFolder.UserProfile),
-        "Downloads");
+    public static string DownloadsFolder => SettingsService.Current.DownloadsFolder;
 }
