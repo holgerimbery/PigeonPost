@@ -65,10 +65,13 @@ public sealed partial class MainWindow : Window
         }
         catch { /* AppWindow unavailable in some hosts */ }
 
-        // Set an initial window size; failure is non-fatal (e.g. on some WinUI hosts).
+        // Set an initial window size that comfortably shows all elements:
+        //   - 640 px wide  → above the 520 DIP AdaptiveTrigger threshold → 4-col stat cards
+        //   - 460 px tall  → fits header, address card, stat cards, buttons and expander header
+        // Values are physical pixels (device-independent at 100 % DPI / 96 ppi).
         try
         {
-            AppWindow?.Resize(new Windows.Graphics.SizeInt32(820, 360));
+            AppWindow?.Resize(new Windows.Graphics.SizeInt32(640, 460));
         }
         catch { /* AppWindow may be unavailable on first launch in some hosts */ }
 
