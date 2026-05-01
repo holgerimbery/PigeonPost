@@ -96,4 +96,37 @@ public static class NetworkHelper
             }
         }
     }
+
+    /// <summary>
+    /// Returns <c>true</c> if <paramref name="ip"/> falls within the Tailscale CGNAT range
+    /// <c>100.64.0.0/10</c> (100.64.x.x – 100.127.x.x).
+    /// </summary>
+    public static bool IsTailscaleIp(string ip)
+    {
+        if (!IPAddress.TryParse(ip, out var addr)) return false;
+        var b = addr.GetAddressBytes();
+        return b.Length == 4 && b[0] == 100 && b[1] >= 64 && b[1] <= 127;
+    }
+
+    /// <summary>
+    /// Scans all operational network interfaces (including virtual/tunnel adapters)
+    /// and returns the first IPv4 address in the Tailscale CGNAT range
+    /// (<c>100.64.0.0/10</c>), or <c>null</c> when Tailscale is not connected.
+    /// </summary>
+    public static string? GetTailscaleIp()
+    {
+        foreach (var nic in NetworkInterface.GetAllNetworkInterfaces())
+        {
+            if (nic.OperationalStatus != OperationalStatus.Up) continue;
+            if (nic.NetworkInterfaceType == NetworkInterfaceType.Loopback) continue;
+
+            foreach (var ua in nic.GetIPProperties().UnicastAddresses)
+            {
+                if (ua.Address.AddressFamily != AddressFamily.InterNetwork) continue;
+                var ip = ua.Address.ToString();
+                if (IsTailscaleIp(ip)) return ip;
+            }
+        }
+        return null;
+    }
 }

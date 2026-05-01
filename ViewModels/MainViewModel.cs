@@ -88,6 +88,18 @@ public partial class MainViewModel : ObservableObject
     /// </summary>
     public Microsoft.UI.Xaml.Visibility UpdateBannerVisibility =>
         _updateAvailable ? Microsoft.UI.Xaml.Visibility.Visible : Microsoft.UI.Xaml.Visibility.Collapsed;
+
+    /// <summary>Formatted Tailscale address shown in the address card (e.g. "http://100.x.x.x:2560").</summary>
+    [ObservableProperty] private string _tailscaleAddress = "";
+
+    /// <summary>Whether a Tailscale IP was detected on the last network scan. Drives row visibility.</summary>
+    [ObservableProperty] private bool _tailscaleConnected;
+
+    /// <summary>
+    /// Drives the Tailscale row Visibility via x:Bind — same pattern as <see cref="UpdateBannerVisibility"/>.
+    /// </summary>
+    public Microsoft.UI.Xaml.Visibility TailscaleAddressVisibility =>
+        TailscaleConnected ? Microsoft.UI.Xaml.Visibility.Visible : Microsoft.UI.Xaml.Visibility.Collapsed;
 #pragma warning restore MVVMTK0045
 
     public MainViewModel(AppState state, DispatcherQueue ui)
@@ -96,6 +108,11 @@ public partial class MainViewModel : ObservableObject
         _ui    = ui;
 
         ListenAddress    = $"http://{NetworkHelper.GetNetworkState().Ip}:{Constants.Port}";
+
+        // Initialise Tailscale state from the current network snapshot.
+        var tsIp = NetworkHelper.GetTailscaleIp();
+        TailscaleConnected = tsIp != null;
+        TailscaleAddress   = tsIp != null ? $"http://{tsIp}:{Constants.Port}" : "";
 
         // Subscribe to events raised by the background HTTP listener thread.
         _state.LogEntryAdded   += OnLogEntry;
@@ -116,6 +133,18 @@ public partial class MainViewModel : ObservableObject
     /// </summary>
     public void UpdateListenAddress(string newIp) =>
         _ui.TryEnqueue(() => ListenAddress = $"http://{newIp}:{Constants.Port}");
+
+    /// <summary>
+    /// Updates the Tailscale address row. Pass <c>null</c> to hide the row (Tailscale disconnected).
+    /// Safe to call from any thread — marshals to the UI thread internally.
+    /// </summary>
+    public void UpdateTailscaleState(string? tailscaleIp) =>
+        _ui.TryEnqueue(() =>
+        {
+            TailscaleConnected = tailscaleIp != null;
+            TailscaleAddress   = tailscaleIp != null ? $"http://{tailscaleIp}:{Constants.Port}" : "";
+            OnPropertyChanged(nameof(TailscaleAddressVisibility));
+        });
 
     /// <summary>
     /// Shows the update banner with the available version string.
