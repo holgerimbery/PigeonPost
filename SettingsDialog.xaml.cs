@@ -5,6 +5,7 @@ using System;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using PigeonPost.Services;
+using Windows.ApplicationModel.DataTransfer;
 using Windows.Storage.Pickers;
 using WinRT.Interop;
 
@@ -45,6 +46,8 @@ public sealed partial class SettingsDialog : ContentDialog
         // Pre-populate controls from current settings.
         AutostartSwitch.IsOn       = AutostartService.GetEnabled();
         DownloadsFolderBox.Text    = SettingsService.Current.DownloadsFolder;
+        RequireAuthSwitch.IsOn     = SettingsService.Current.AuthEnabled;
+        AuthTokenBox.Text          = SettingsService.Current.AuthToken;
 
         // Select the matching theme radio button without triggering the live-preview handler.
         ThemeRadios.SelectionChanged -= ThemeRadios_SelectionChanged;
@@ -69,6 +72,8 @@ public sealed partial class SettingsDialog : ContentDialog
         // Update settings object and persist.
         SettingsService.Current.DownloadsFolder = DownloadsFolderBox.Text;
         SettingsService.Current.Theme           = SelectedThemeTag();
+        SettingsService.Current.AuthEnabled     = RequireAuthSwitch.IsOn;
+        SettingsService.Current.AuthToken       = AuthTokenBox.Text;
         SettingsService.Save();
     }
 
@@ -152,6 +157,27 @@ public sealed partial class SettingsDialog : ContentDialog
         await UpdateService.DownloadAndApplyAsync(pendingUpdate, pct =>
             DispatcherQueue.TryEnqueue(() =>
                 CheckUpdateButton.Content = $"Downloading… {pct}%"));
+    }
+
+    // ── Security ──────────────────────────────────────────────────────────────
+
+    /// <summary>Copies the bearer token to the Windows clipboard.</summary>
+    private void CopyTokenButton_Click(object sender, RoutedEventArgs e)
+    {
+        var dp = new DataPackage();
+        dp.SetText(AuthTokenBox.Text);
+        Clipboard.SetContent(dp);
+    }
+
+    /// <summary>
+    /// Generates a new bearer token, updates the text box and the in-memory settings.
+    /// The new token is not saved to disk until the user clicks Save.
+    /// </summary>
+    private void RegenerateTokenButton_Click(object sender, RoutedEventArgs e)
+    {
+        var newToken = SettingsService.GenerateToken();
+        AuthTokenBox.Text                 = newToken;
+        SettingsService.Current.AuthToken = newToken;
     }
 
     // ── Helpers ───────────────────────────────────────────────────────────────

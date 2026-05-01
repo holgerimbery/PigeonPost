@@ -78,6 +78,42 @@
             <Rectangle Height="1" Margin="0,4"
                        Fill="{ThemeResource DividerStrokeColorDefaultBrush}" Opacity="0.4"/>
 
+            <!-- ── Security ─────────────────────────────────────────────────── -->
+            <TextBlock Text="Security" FontWeight="SemiBold" FontSize="14"
+                       Foreground="{ThemeResource TextFillColorPrimaryBrush}"/>
+
+            <ToggleSwitch x:Name="RequireAuthSwitch"
+                          Header="Require bearer token authentication"
+                          OffContent="" OnContent=""
+                          MinWidth="0"/>
+
+            <StackPanel Spacing="6">
+                <TextBlock Text="Bearer token (send in Authorization header)" Opacity="0.7" FontSize="12"/>
+                <Grid ColumnSpacing="8">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
+                    <TextBox x:Name="AuthTokenBox" Grid.Column="0"
+                             IsReadOnly="True" FontFamily="Consolas" FontSize="11"
+                             TextWrapping="NoWrap"/>
+                    <Button x:Name="CopyTokenButton" Grid.Column="1"
+                            ToolTipService.ToolTip="Copy token to clipboard"
+                            VerticalAlignment="Bottom"
+                            Click="CopyTokenButton_Click">
+                        <FontIcon Glyph="&#xE8C8;" FontSize="14"/>
+                    </Button>
+                    <Button x:Name="RegenerateTokenButton" Grid.Column="2"
+                            Content="Regenerate"
+                            VerticalAlignment="Bottom"
+                            Click="RegenerateTokenButton_Click"/>
+                </Grid>
+            </StackPanel>
+
+            <Rectangle Height="1" Margin="0,4"
+                       Fill="{ThemeResource DividerStrokeColorDefaultBrush}" Opacity="0.4"/>
+
             <!-- ── Updates ──────────────────────────────────────────────────── -->
             <TextBlock Text="Updates" FontWeight="SemiBold" FontSize="14"
                        Foreground="{ThemeResource TextFillColorPrimaryBrush}"/>

@@ -268,6 +268,20 @@ public sealed class ListenerService : IDisposable
                 return;
             }
 
+            // Enforce bearer token authentication when enabled in settings.
+            if (SettingsService.Current.AuthEnabled)
+            {
+                var authHeader = ctx.Request.Headers["Authorization"] ?? string.Empty;
+                var expected   = $"Bearer {SettingsService.Current.AuthToken}";
+                if (!string.Equals(authHeader, expected, StringComparison.Ordinal))
+                {
+                    ctx.Response.Headers["WWW-Authenticate"] = "Bearer";
+                    _state.Emit(LogLevel.Warn, "Request rejected — invalid or missing bearer token");
+                    await WriteAsync(ctx, 401, "Unauthorized");
+                    return;
+                }
+            }
+
             // Log every incoming request for easier debugging (remove once stable).
             _state.Emit(LogLevel.Info,
                 $"→ {ctx.Request.HttpMethod} headers=[{string.Join(", ", ctx.Request.Headers.AllKeys ?? [])}] qs=[{ctx.Request.QueryString}]");
