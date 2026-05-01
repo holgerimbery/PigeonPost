@@ -30,6 +30,13 @@
     <NoWarn>$(NoWarn);CA1416</NoWarn>
     <!-- Embeds the ICO into the EXE so Explorer and Alt+Tab show the pigeon icon. -->
     <ApplicationIcon>Assets\PigeonPost.ico</ApplicationIcon>
+    <!--
+      DISABLE_XAML_GENERATED_MAIN suppresses the SDK-generated Program.cs so that our
+      own Program.cs (which calls VelopackApp.Build().Run() first) is used instead.
+      This is required by Velopack: the bootstrap call must be the very first line
+      executed before any WinUI or COM initialisation.
+    -->
+    <DefineConstants>$(DefineConstants);DISABLE_XAML_GENERATED_MAIN</DefineConstants>
   </PropertyGroup>
 
   <ItemGroup>
@@ -38,6 +45,7 @@
     <PackageReference Include="CommunityToolkit.Mvvm" Version="8.4.2" />
     <PackageReference Include="H.NotifyIcon.WinUI" Version="2.3.2" />
     <PackageReference Include="System.Drawing.Common" Version="9.0.1" />
+    <PackageReference Include="Velopack" Version="0.0.1298" />
   </ItemGroup>
 
   <ItemGroup>

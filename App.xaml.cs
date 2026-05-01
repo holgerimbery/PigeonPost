@@ -4,6 +4,7 @@
 using System;
 using System.IO;
 using System.Linq;
+using System.Threading.Tasks;
 using Microsoft.UI.Xaml;
 using Microsoft.Windows.AppNotifications;
 using Microsoft.Windows.AppNotifications.Builder;
@@ -100,6 +101,22 @@ public partial class App : Application
         IpMonitor = new IpMonitorService();
         IpMonitor.NetworkChanged += OnNetworkChanged;
         IpMonitor.Start();
+
+        // Check for updates in the background — never block startup.
+        // Result is surfaced as a banner in the UI via ViewModel.NotifyUpdateAvailable().
+        _ = CheckForUpdatesAsync();
+    }
+
+    /// <summary>
+    /// Checks GitHub Releases for a newer version and shows the update banner if found.
+    /// Runs on a thread-pool thread; never throws.
+    /// </summary>
+    private static async Task CheckForUpdatesAsync()
+    {
+        var update = await UpdateService.CheckForUpdatesAsync().ConfigureAwait(false);
+        if (update is null) return;
+
+        ViewModel?.NotifyUpdateAvailable(update.TargetFullRelease.Version.ToString());
     }
 
     /// <summary>

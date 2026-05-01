@@ -2,12 +2,17 @@
 # Licensed under the MIT License. See LICENSE in the project root for license information.
 #
 # Triggered when a tag matching v* is pushed (e.g. v1.0.0).
-# Builds a self-contained single-file EXE for Windows x64 and attaches it
-# to the GitHub Release that is automatically created from the tag.
+# Builds a Velopack installer + update feed for Windows x64 and attaches the
+# assets to the GitHub Release so the in-app auto-updater can find them.
 #
 # How to release:
 #   git tag v1.0.0 -m "Release 1.0.0"
 #   git push origin v1.0.0
+#
+# Velopack release assets uploaded per release:
+#   - PigeonPost-win-x64-Setup.exe   (first-time installer)
+#   - PigeonPost-win-x64-full.nupkg  (full update package)
+#   - releases.win-x64.json          (update feed — read by UpdateManager)
 
 name: Release
 
@@ -18,10 +23,10 @@ on:
 
 jobs:
   build:
-    name: Build & publish
+    name: Build & release (Velopack)
     runs-on: windows-latest
     permissions:
-      contents: write   # needed to create the GitHub Release and upload assets
+      contents: write   # required to create/update the GitHub Release and upload assets
 
     steps:
       - name: Checkout
@@ -35,37 +40,52 @@ jobs:
       - name: Restore NuGet packages
         run: dotnet restore PigeonPost.csproj
 
-      # Publish a trimmed, self-contained, single-file EXE.
-      # The resulting PigeonPost.exe runs on any Windows 10/11 x64 machine
-      # without needing .NET or the Windows App SDK pre-installed.
-      - name: Publish standalone EXE
+      # Extract the semver from the tag (strips the leading 'v').
+      # e.g.  refs/tags/v1.2.3  →  PACK_VERSION=1.2.3
+      - name: Parse version from tag
+        shell: pwsh
+        run: |
+          $tag = "${{ github.ref_name }}"           # e.g. v1.2.3
+          $ver = $tag.TrimStart('v')                 # e.g. 1.2.3
+          echo "PACK_VERSION=$ver" >> $env:GITHUB_ENV
+
+      # Publish a self-contained folder (NOT single-file).
+      # Velopack's vpk tool needs all the DLLs/assets in a directory to pack them.
+      - name: Publish self-contained folder
         run: |
           dotnet publish PigeonPost.csproj `
             -c Release `
             -r win-x64 `
             --self-contained true `
             /p:WindowsAppSdkSelfContained=true `
-            /p:PublishSingleFile=true `
+            /p:PublishSingleFile=false `
             /p:EnableMsixTooling=true `
-            /p:PublishReadyToRun=false
+            -o publish
 
-      # Locate the published EXE and copy it to the workspace root so the
-      # upload step has a stable, version-stamped filename to reference.
-      - name: Stage artifact
+      # Install the Velopack CLI tool (vpk) globally.
+      - name: Install vpk
+        run: dotnet tool install -g vpk
+
+      # Pack the published output into a Velopack release.
+      # Creates: releases/PigeonPost-win-x64-Setup.exe
+      #          releases/PigeonPost-win-x64-full.nupkg
+      #          releases/releases.win-x64.json  (the update feed)
+      - name: Pack with vpk
         shell: pwsh
         run: |
-          $exe = Get-ChildItem -Recurse -Filter PigeonPost.exe `
-                   -Path bin/Release | Where-Object { $_.DirectoryName -match 'publish' } |
-                   Select-Object -First 1
-          $tag  = "${{ github.ref_name }}"
-          $dest = "PigeonPost-$tag-win-x64.exe"
-          Copy-Item $exe.FullName $dest
-          echo "ASSET=$dest" >> $env:GITHUB_ENV
+          vpk pack `
+            --packId   PigeonPost `
+            --packVersion $env:PACK_VERSION `
+            --packDir  publish `
+            --mainExe  PigeonPost.exe `
+            --channel  win-x64 `
+            --outputDir releases
 
-      # Create the GitHub Release (from the tag) and attach the EXE.
-      # release_notes are auto-generated from commits since the previous tag.
-      - name: Create GitHub Release
+      # Attach every file in the releases/ folder to the GitHub Release.
+      # The update feed (releases.win-x64.json) MUST be present so that
+      # GithubSource can discover available versions.
+      - name: Create GitHub Release and upload assets
         uses: softprops/action-gh-release@v2
         with:
           generate_release_notes: true
-          files: ${{ env.ASSET }}
+          files: releases/*

@@ -4,6 +4,7 @@
 using System;
 using System.Collections.ObjectModel;
 using System.Diagnostics;
+using System.Threading.Tasks;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Microsoft.UI.Dispatching;
@@ -76,6 +77,23 @@ public partial class MainViewModel : ObservableObject
     /// Toggling this property writes or removes the registry entry immediately.
     /// </summary>
     [ObservableProperty] private bool _autostartEnabled;
+
+    /// <summary>
+    /// Whether a newer version was found on GitHub. Drives the update-banner visibility.
+    /// Set from a background thread via <see cref="NotifyUpdateAvailable"/>.
+    /// </summary>
+    [ObservableProperty] private bool _updateAvailable;
+
+    /// <summary>Label shown in the update banner, e.g. "v1.2.0 is available — click to update".</summary>
+    [ObservableProperty] private string _updateVersionText = "";
+
+    /// <summary>
+    /// Drives the update-banner Visibility via x:Bind — avoids the need for a
+    /// BooleanToVisibilityConverter with x:Bind, which causes a CS1503 compile error
+    /// because the generated SetConverterLookupRoot expects a FrameworkElement but gets a Window.
+    /// </summary>
+    public Microsoft.UI.Xaml.Visibility UpdateBannerVisibility =>
+        _updateAvailable ? Microsoft.UI.Xaml.Visibility.Visible : Microsoft.UI.Xaml.Visibility.Collapsed;
 #pragma warning restore MVVMTK0045
 
     public MainViewModel(AppState state, DispatcherQueue ui)
@@ -106,6 +124,18 @@ public partial class MainViewModel : ObservableObject
     /// </summary>
     public void UpdateListenAddress(string newIp) =>
         _ui.TryEnqueue(() => ListenAddress = $"http://{newIp}:{Constants.Port}");
+
+    /// <summary>
+    /// Shows the update banner with the available version string.
+    /// Safe to call from any thread.
+    /// </summary>
+    public void NotifyUpdateAvailable(string version) =>
+        _ui.TryEnqueue(() =>
+        {
+            UpdateVersionText = $"Version {version} is available — click Install &amp; Restart to update.";
+            UpdateAvailable   = true;
+            OnPropertyChanged(nameof(UpdateBannerVisibility));
+        });
 
     // ---------------------------------------------------------------- event handlers
 
@@ -255,6 +285,25 @@ public partial class MainViewModel : ObservableObject
         _state.Emit(LogLevel.Info,
             value ? "Autostart enabled — PigeonPost will start with Windows (tray mode)"
                   : "Autostart disabled");
+    }
+
+    /// <summary>
+    /// Invoked when the user clicks "Install &amp; Restart" in the update banner.
+    /// Downloads and applies the pending update; the app restarts automatically.
+    /// </summary>
+    [RelayCommand]
+    private async Task InstallUpdate()
+    {
+        // Re-check so we have the UpdateInfo object to pass to DownloadAndApplyAsync.
+        var update = await UpdateService.CheckForUpdatesAsync().ConfigureAwait(false);
+        if (update is null) return;
+
+        _state.Emit(LogLevel.Info, $"Downloading update {update.TargetFullRelease.Version} …");
+
+        await UpdateService.DownloadAndApplyAsync(update, pct =>
+            _ui.TryEnqueue(() => UpdateVersionText =
+                $"Downloading … {pct}%")).ConfigureAwait(false);
+        // DownloadAndApplyAsync calls ApplyUpdatesAndRestart — this line is never reached.
     }
 
     /// <summary>
