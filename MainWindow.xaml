@@ -191,8 +191,17 @@
                 <Button Content="Open Downloads"
                         Command="{x:Bind ViewModel.OpenDownloadsCommand}"/>
             </StackPanel>
-            <Button Content="Hide to tray" HorizontalAlignment="Right"
-                    Command="{x:Bind ViewModel.HideToTrayCommand}"/>
+            <!-- Right-side controls: autostart toggle + hide-to-tray button -->
+            <StackPanel Orientation="Horizontal" Spacing="16"
+                        HorizontalAlignment="Right" VerticalAlignment="Center">
+                <ToggleSwitch IsOn="{x:Bind ViewModel.AutostartEnabled, Mode=TwoWay}"
+                              Header="Start with Windows"
+                              OffContent="" OnContent=""
+                              MinWidth="0" Margin="0,0,0,-4"
+                              VerticalAlignment="Center"/>
+                <Button Content="Hide to tray"
+                        Command="{x:Bind ViewModel.HideToTrayCommand}"/>
+            </StackPanel>
         </Grid>
 
         <!-- ============ Activity log (open by default, collapsible) ============ -->

@@ -70,6 +70,12 @@ public partial class MainViewModel : ObservableObject
     /// <summary>Collapses the badge when there are no entries (avoids showing "0").</summary>
     [ObservableProperty] private Microsoft.UI.Xaml.Visibility _logCountVisible =
         Microsoft.UI.Xaml.Visibility.Collapsed;
+
+    /// <summary>
+    /// Whether PigeonPost is registered to start automatically with Windows.
+    /// Toggling this property writes or removes the registry entry immediately.
+    /// </summary>
+    [ObservableProperty] private bool _autostartEnabled;
 #pragma warning restore MVVMTK0045
 
     public MainViewModel(AppState state, DispatcherQueue ui)
@@ -77,8 +83,9 @@ public partial class MainViewModel : ObservableObject
         _state = state;
         _ui    = ui;
 
-        ListenAddress = $"http://{NetworkHelper.GetNetworkState().Ip}:{Constants.Port}";
-        DownloadsLine = $"Files saved to:  {Constants.DownloadsFolder}";
+        ListenAddress    = $"http://{NetworkHelper.GetNetworkState().Ip}:{Constants.Port}";
+        DownloadsLine    = $"Files saved to:  {Constants.DownloadsFolder}";
+        _autostartEnabled = AutostartService.GetEnabled(); // read registry once at startup
 
         // Subscribe to events raised by the background HTTP listener thread.
         _state.LogEntryAdded   += OnLogEntry;
@@ -236,6 +243,18 @@ public partial class MainViewModel : ObservableObject
         LogCountVisible = LogEntries.Count > 0
             ? Microsoft.UI.Xaml.Visibility.Visible
             : Microsoft.UI.Xaml.Visibility.Collapsed;
+    }
+
+    /// <summary>
+    /// Invoked automatically by CommunityToolkit.Mvvm when <see cref="AutostartEnabled"/> changes.
+    /// Writes or removes the registry entry and logs the outcome.
+    /// </summary>
+    partial void OnAutostartEnabledChanged(bool value)
+    {
+        AutostartService.SetEnabled(value);
+        _state.Emit(LogLevel.Info,
+            value ? "Autostart enabled — PigeonPost will start with Windows (tray mode)"
+                  : "Autostart disabled");
     }
 
     /// <summary>

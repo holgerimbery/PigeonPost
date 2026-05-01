@@ -3,6 +3,7 @@
 
 using System;
 using System.IO;
+using System.Linq;
 using Microsoft.UI.Xaml;
 using Microsoft.Windows.AppNotifications;
 using Microsoft.Windows.AppNotifications.Builder;
@@ -67,11 +68,29 @@ public partial class App : Application
 
     protected override void OnLaunched(LaunchActivatedEventArgs args)
     {
+        // Keep the registry path current if the EXE was moved or updated.
+        AutostartService.RefreshPathIfEnabled();
+
+        // Detect whether Windows launched us at login (via the registry Run entry).
+        // If so, start tray-only without showing the main window.
+        var startMinimised = Environment.GetCommandLineArgs()
+            .Any(a => a.Equals("--autostart", StringComparison.OrdinalIgnoreCase));
+
         // Create and show the window first so its DispatcherQueue exists before
         // the listener is started (clipboard operations need it).
         _window   = new MainWindow(State);
         ViewModel = _window.ViewModel;
-        _window.Activate();
+
+        if (startMinimised)
+        {
+            // Activate once (required to initialise AppWindow) then immediately hide.
+            _window.Activate();
+            _window.AppWindow?.Hide();
+        }
+        else
+        {
+            _window.Activate();
+        }
 
         // Start the HTTP listener so remote clients can send files and clipboard data.
         Listener = new ListenerService(State, _window.DispatcherQueue);
