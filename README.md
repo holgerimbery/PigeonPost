@@ -22,10 +22,23 @@ No cloud service, no account, no setup beyond the app itself.
 - **Open Downloads** button
 - **Minimize to tray** — the close button hides the window; left-click the icon to restore
 - **Tray context menu**: Show window · Pause / Resume · Quit
+- **Start with Windows** — optional autostart toggle; app launches hidden to tray
+- **Smart network monitoring** — detects WiFi ↔ LAN switches, IP changes, and offline events; restarts the listener automatically on relevant changes
+- **Auto-update** — checks GitHub Releases on startup and shows an in-app banner when a new version is available; one click installs and restarts
 
 ---
 
-## Prerequisites (one-time setup — build from source only)
+## Install
+
+Download `PigeonPost-win-x64-Setup.exe` from the [latest GitHub Release](https://github.com/holgerimbery/PigeonPost/releases/latest) and run it.
+
+The installer is built by Velopack and handles installation, desktop shortcuts, and future updates automatically.
+
+> **ARM-based PCs:** download `PigeonPost-win-arm64-Setup.exe` instead.
+
+---
+
+## Prerequisites (build from source only)
 
 | Dependency | Version | Where to get it |
 |---|---|---|
@@ -68,34 +81,37 @@ connections on port 2560. Tick **Private networks** and click **Allow access**.
 
 ---
 
-## Publish — portable single-file EXE
+## Publish — Velopack installer (release)
 
-The following command produces **one self-contained EXE** (~207 MB) that runs on
-any Windows 10/11 x64 machine without installing .NET or Windows App SDK:
+Releases are built automatically by GitHub Actions when a version tag is pushed.
+The workflow produces a Velopack installer + update feed and attaches them to the release.
+
+```bat
+git tag v1.2.3 -m "Release 1.2.3"
+git push origin v1.2.3
+```
+
+The CI pipeline runs:
 
 ```bat
 dotnet publish PigeonPost.csproj -c Release -r win-x64 ^
     --self-contained true ^
     /p:WindowsAppSdkSelfContained=true ^
-    /p:PublishSingleFile=true ^
     /p:EnableMsixTooling=true ^
-    /p:PublishReadyToRun=false
+    -o publish
+
+vpk pack --packId PigeonPost --packVersion 1.2.3 ^
+    --packDir publish --mainExe PigeonPost.exe ^
+    --channel win-x64 --outputDir releases
 ```
 
-Output:
+Three files are uploaded to the GitHub Release:
 
-```
-bin\Release\net9.0-windows10.0.19041.0\win-x64\publish\PigeonPost.exe
-```
-
-Copy just `PigeonPost.exe` to the target machine and run it directly.
-
-> **First launch:** Windows extracts the bundled native App SDK DLLs to `%TEMP%`
-> (a one-time step, ~2–3 seconds). Subsequent launches are instant.
->
-> **ARM-based PCs:** use `-r win-arm64` instead of `-r win-x64`.
->
-> **No console window.** The project is built as `WinExe`.
+| File | Purpose |
+|---|---|
+| `PigeonPost-win-x64-Setup.exe` | First-time installer |
+| `PigeonPost-win-x64-full.nupkg` | Full update package |
+| `releases.win-x64.json` | Update feed — read by the in-app updater |
 
 ---
 
@@ -104,19 +120,26 @@ Copy just `PigeonPost.exe` to the target machine and run it directly.
 ```
 PigeonPost/
 ├── PigeonPost.csproj            # WinUI 3 + .NET 9, unpackaged
+├── Program.cs                   # Custom entry point: VelopackApp.Build().Run() first
 ├── app.manifest                 # Per-monitor DPI awareness, Win10/11 compat IDs
 ├── App.xaml / App.xaml.cs       # Application bootstrap; ThemeDictionaries (Fluent Light/Dark)
 ├── MainWindow.xaml / .xaml.cs   # Mica window, layout, tray icon wiring, theme-change handler
 ├── Constants.cs                 # Port number, Downloads folder path
 ├── Assets/
 │   └── PigeonPost.ico           # Pigeon + envelope icon (7 sizes: 256 → 16 px)
+├── Converters/
+│   ├── HexColorConverter.cs     # "#rrggbb" → SolidColorBrush (used in log list)
+│   └── BoolToVisibilityConverter.cs  # bool → Visibility (update banner)
 ├── Models/
 │   ├── LogLevel.cs              # Enum: Info / Success / Warn / Error / File / Clipboard
 │   └── LogEntry.cs              # Immutable log record; LevelBrush resolves from ThemeDictionaries
 ├── Services/
 │   ├── AppState.cs              # Thread-safe shared state + events
+│   ├── AutostartService.cs      # HKCU Run registry; Start-with-Windows toggle
+│   ├── IpMonitorService.cs      # Network-change detection (WiFi/LAN/offline/IP change)
 │   ├── ListenerService.cs       # HttpListener, clipboard ops, file upload; localhost fallback
-│   └── NetworkHelper.cs         # Local-IP discovery for the address card
+│   ├── NetworkHelper.cs         # Local-IP discovery and interface-kind detection
+│   └── UpdateService.cs         # Velopack update check + download + apply
 └── ViewModels/
     └── MainViewModel.cs         # MVVM: observable properties, relay commands, uptime timer;
                                  # RefreshStatusColors() resolves Fluent brushes from resources
@@ -319,8 +342,18 @@ PigeonPost handles this automatically:
 
 The address card in the main window always shows the address that was actually bound.
 
-> If your PC's IP changes (DHCP renewal, switching networks), restart the app to
-> re-bind to the new address.
+---
+
+## Network change handling
+
+PigeonPost monitors network changes continuously in the background and reacts automatically:
+
+| Event | What happens |
+|---|---|
+| **Went offline** | Warning toast — listener is stopped; no routable IP to rebind to |
+| **Came online** | Listener restarts on the new address; success toast |
+| **WiFi ↔ LAN switch** | Listener restarts on the new interface address; toast with old → new |
+| **IP change (DHCP renewal)** | Listener restarts on the new address; toast with old → new |
 
 ---
 
@@ -347,7 +380,7 @@ PigeonPost follows the Windows system colour mode automatically:
 | **Window is transparent / no Mica effect** | Running on Windows 10 | Expected — Mica is Windows 11 only; the app functions normally otherwise |
 | **`The Windows App Runtime is not installed`** when running the published exe | Published without `--self-contained` flags | Re-publish with the full `dotnet publish` command shown above |
 | **Tray icon does not appear** | Windows hides overflow icons | Right-click taskbar → *Taskbar settings* → *Other system tray icons* → enable **PigeonPost** |
-| **First launch of the portable EXE is slow** | Native DLLs are being extracted to `%TEMP%` | One-time extraction; subsequent launches are instant |
+| **Update banner never appears** | App is running as a dev build (not installed via Setup.exe) | Expected — update checks are skipped for non-installed builds to avoid false errors |
 
 ---
 
@@ -361,17 +394,9 @@ PigeonPost follows the Windows system colour mode automatically:
 
 ---
 
-## What is intentionally not included (v1)
-
-- HTTPS / TLS
-- Authentication
-- Run on login (add a value under `HKCU\Software\Microsoft\Windows\CurrentVersion\Run`)
-- Auto-update
-
----
-
 ## License
 
 Copyright (c) 2026 Holger Imbery
 
 Licensed under the **MIT License** — see the [LICENSE](LICENSE) file for the full text.
+

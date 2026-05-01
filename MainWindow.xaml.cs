@@ -42,6 +42,14 @@ public sealed partial class MainWindow : Window
 
     public MainViewModel ViewModel { get; }
 
+    /// <summary>
+    /// Version string shown in the footer, read from the assembly at runtime so it
+    /// automatically reflects whatever &lt;Version&gt; is set in the .csproj.
+    /// </summary>
+    public string AppVersion =>
+        "v" + (System.Reflection.Assembly.GetExecutingAssembly()
+                    .GetName().Version?.ToString(3) ?? "1.0.0");
+
     private TaskbarIcon? _trayIcon;
     private MenuFlyoutItem? _pauseMenuItem;
 

@@ -290,10 +290,11 @@
         </Expander>
 
         <!-- ============ Footer ============ -->
-        <TextBlock Grid.Row="6"
-                   Text="© 2026 Holger Imbery · MIT License"
-                   FontSize="11" Opacity="0.45"
-                   HorizontalAlignment="Center"
-                   Margin="0,6,0,0"/>
+        <StackPanel Grid.Row="6" HorizontalAlignment="Center" Margin="0,6,0,0" Spacing="2">
+            <TextBlock Text="© 2026 Holger Imbery · MIT License"
+                       FontSize="11" Opacity="0.45" HorizontalAlignment="Center"/>
+            <TextBlock Text="{x:Bind AppVersion, Mode=OneTime}"
+                       FontSize="11" Opacity="0.35" HorizontalAlignment="Center"/>
+        </StackPanel>
     </Grid>
 </Window>
