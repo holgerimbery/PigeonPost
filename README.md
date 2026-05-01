@@ -157,22 +157,132 @@ Use the query-parameter form from iOS Shortcuts — it avoids "invalid header" r
 | `500` | Unexpected server-side error |
 | `503` | Server is currently paused |
 
-### iOS Shortcuts example (German: Kurzbefehle)
+### iOS Shortcuts
 
-Add a **„Inhalt der URL abrufen"** action and configure it as follows:
+PigeonPost works with the built-in **Shortcuts** app (German: *Kurzbefehle*) on any iPhone
+or iPad on the same Wi-Fi network.
 
-| Field | Value |
-|---|---|
-| URL | `http://<your-pc-ip>:2560` |
-| Methode | **POST** |
-| Header — Schlüssel | `clipboard` |
-| Header — Wert | `send` |
-| Haupttext | **JSON** |
-| JSON key | `text` |
-| JSON value | Variable **„Zwischenablage"** (tap the `+` to insert) |
+> **Before you start / Vor dem Start:**  
+> Find your PC's IP address in the PigeonPost address card (e.g. `192.168.1.205`).  
+> Replace `YOUR_PC_IP` / `DEINE_PC_IP` in every URL below.
 
-> iOS Shortcuts only offers JSON / Form / File body types — plain text is not available.
-> PigeonPost accepts both plain text and `{"text":"…"}` JSON so both curl and Shortcuts work.
+> iOS Shortcuts only offers JSON / Form / File as body types — there is no plain-text option.  
+> PigeonPost accepts JSON `{"text":"…"}` as well as plain text, so both curl and Shortcuts work.
+
+---
+
+#### Shortcut 1 — Send iPhone clipboard to Windows / Zwischenablage an Windows senden
+
+**What it does:** Sends whatever is copied on your iPhone to the Windows clipboard.  
+**Was es tut:** Sendet die iPhone-Zwischenablage an die Windows-Zwischenablage.
+
+**English steps**
+
+1. Open **Shortcuts** → tap **+** (top right)
+2. **Add Action** → search `Get Contents of URL` → tap it
+3. Configure the action:
+   - **URL**: `http://YOUR_PC_IP:2560`
+   - **Method**: `POST`
+   - Tap **Headers** → add a header: Key `clipboard` / Value `send`
+   - Tap **Request Body** → select **JSON**
+   - Add a field: Key `text` / Value → tap the variable button (`+`) → choose **Clipboard**
+4. Tap the shortcut name at the top → rename to e.g. **📋 → Windows**
+5. Tap **Done**
+
+**Deutsche Schritte**
+
+1. **Kurzbefehle** öffnen → oben rechts **+** tippen
+2. **Aktion hinzufügen** → `Inhalt der URL abrufen` suchen → auswählen
+3. Aktion konfigurieren:
+   - **URL**: `http://DEINE_PC_IP:2560`
+   - **Methode**: `POST`
+   - **Header** antippen → Header hinzufügen: Schlüssel `clipboard` / Wert `send`
+   - **Anforderungstext** antippen → **JSON** wählen
+   - Feld hinzufügen: Schlüssel `text` / Wert → Variable-Taste (`+`) → **Zwischenablage** wählen
+4. Namen oben antippen → umbenennen z. B. **📋 → Windows**
+5. **Fertig** tippen
+
+---
+
+#### Shortcut 2 — Get Windows clipboard on iPhone / Windows-Zwischenablage auf iPhone lesen
+
+**What it does:** Reads the current Windows clipboard and copies the text to your iPhone clipboard.  
+**Was es tut:** Liest die Windows-Zwischenablage und kopiert den Text auf das iPhone.
+
+**English steps**
+
+1. Open **Shortcuts** → tap **+**
+2. **Add Action** → search `Get Contents of URL` → tap it
+3. Configure:
+   - **URL**: `http://YOUR_PC_IP:2560`
+   - **Method**: `POST`
+   - **Headers** → Key `clipboard` / Value `receive`
+   - *(No request body needed)*
+4. **Add Action** → search `Copy to Clipboard` → tap it  
+   *(the URL result is passed automatically as the text to copy)*
+5. Rename to **Windows → 📋** → **Done**
+
+**Deutsche Schritte**
+
+1. **Kurzbefehle** → **+** tippen
+2. **Aktion hinzufügen** → `Inhalt der URL abrufen` → auswählen
+3. Konfigurieren:
+   - **URL**: `http://DEINE_PC_IP:2560`
+   - **Methode**: `POST`
+   - **Header** → Schlüssel `clipboard` / Wert `receive`
+   - *(Kein Anforderungstext nötig)*
+4. **Aktion hinzufügen** → `In Zwischenablage kopieren` suchen → auswählen  
+   *(das URL-Ergebnis wird automatisch als Text übergeben)*
+5. Umbenennen: **Windows → 📋** → **Fertig**
+
+---
+
+#### Shortcut 3 — Send photo to Windows / Foto an Windows senden
+
+**What it does:** Picks a photo from your gallery, converts it to JPEG, and uploads it to the
+Windows Downloads folder with a timestamped filename.  
+**Was es tut:** Wählt ein Foto aus der Galerie, konvertiert es zu JPEG und lädt es mit
+einem Zeitstempel-Dateinamen in den Windows-Downloads-Ordner hoch.
+
+**English steps**
+
+1. Open **Shortcuts** → **+**
+2. **Add Action** → search `Select Photos` → tap it  
+   *(leave "Select Multiple" off for a single photo)*
+3. **Add Action** → search `Convert Image` → tap it  
+   Set **Format** to **JPEG** and **Quality** to **Best**
+4. **Add Action** → search `Format Date` → tap it
+   - **Date**: tap the variable button (`+`) → choose **Current Date**
+   - **Format**: select **Custom** → type `yyyy-MM-dd_HH-mm-ss`
+5. **Add Action** → search `Get Contents of URL` → tap it, configure:
+   - **URL**: type `http://YOUR_PC_IP:2560?filename=` → tap `+` → choose **Formatted Date** → type `.jpg` directly after it  
+     *(the full URL will look like `http://192.168.1.205:2560?filename=2026-05-01_13-00-00.jpg`)*
+   - **Method**: `POST`
+   - **Request Body** → select **File**
+   - File value: tap `+` → choose **Converted Image**
+6. Rename to **📸 → Windows** → **Done**
+
+**Deutsche Schritte**
+
+1. **Kurzbefehle** → **+** tippen
+2. **Aktion hinzufügen** → `Fotos auswählen` suchen → auswählen  
+   *("Mehrere auswählen" ausgeschaltet lassen für ein einzelnes Foto)*
+3. **Aktion hinzufügen** → `Bild konvertieren` suchen → auswählen  
+   **Format**: **JPEG**, **Qualität**: **Beste**
+4. **Aktion hinzufügen** → `Datum formatieren` suchen → auswählen
+   - **Datum**: Variable-Taste (`+`) → **Aktuelles Datum** wählen
+   - **Format**: **Benutzerdefiniert** → `yyyy-MM-dd_HH-mm-ss` eingeben
+5. **Aktion hinzufügen** → `Inhalt der URL abrufen` suchen → auswählen, konfigurieren:
+   - **URL**: `http://DEINE_PC_IP:2560?filename=` eingeben → `+` → **Formatiertes Datum** wählen → direkt danach `.jpg` eingeben  
+     *(Ergebnis: `http://192.168.1.205:2560?filename=2026-05-01_13-00-00.jpg`)*
+   - **Methode**: `POST`
+   - **Anforderungstext** → **Datei** wählen
+   - Datei-Wert: `+` → **Konvertiertes Bild** wählen
+6. Umbenennen: **📸 → Windows** → **Fertig**
+
+> **Tip / Tipp:** Add any shortcut to your iPhone Home Screen:  
+> Open the shortcut → tap **⋯** (top right) → **Add to Home Screen**.  
+> Kurzbefehl zum Home-Bildschirm hinzufügen: Kurzbefehl öffnen → **⋯** (oben rechts) → **Zum Home-Bildschirm**.
 
 ### curl examples
 

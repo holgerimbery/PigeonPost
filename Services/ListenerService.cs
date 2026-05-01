@@ -256,6 +256,10 @@ public sealed class ListenerService : IDisposable
                 return;
             }
 
+            // Log every incoming request for easier debugging (remove once stable).
+            _state.Emit(LogLevel.Info,
+                $"→ {ctx.Request.HttpMethod} headers=[{string.Join(", ", ctx.Request.Headers.AllKeys ?? [])}] qs=[{ctx.Request.QueryString}]");
+
             var clipboardAction = ctx.Request.Headers["clipboard"];
             if (!string.IsNullOrEmpty(clipboardAction))
             {
