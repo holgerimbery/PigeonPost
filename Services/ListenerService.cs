@@ -2,6 +2,7 @@ using System;
 using System.IO;
 using System.Net;
 using System.Text;
+using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.UI.Dispatching;
@@ -293,9 +294,14 @@ public sealed class ListenerService : IDisposable
         {
             case "send":
             {
-                // Read the request body as UTF-8 text and push it to the clipboard.
+                // Read the request body as UTF-8 text.
+                // Accepts three formats so plain curl AND iOS Shortcuts (JSON mode) both work:
+                //   1. Plain text:           hello world
+                //   2. JSON string literal:  "hello world"        (iOS Shortcuts, no key)
+                //   3. JSON object with key: {"text":"hello"}     (iOS Shortcuts, key = text)
                 using var reader = new StreamReader(ctx.Request.InputStream, Encoding.UTF8);
-                var text = await reader.ReadToEndAsync();
+                var raw  = await reader.ReadToEndAsync();
+                var text = ExtractText(raw);
                 await SetClipboardOnUiAsync(text);
                 _state.IncrementClipboardSends();
                 _state.Emit(LogLevel.Clipboard,
@@ -467,5 +473,41 @@ public sealed class ListenerService : IDisposable
         if (string.IsNullOrEmpty(s)) return string.Empty;
         s = s.Replace('\n', ' ').Replace('\r', ' ');
         return s.Length <= max ? s : s[..max] + "\u2026";
+    }
+
+    /// <summary>
+    /// Extracts plain text from a request body that may be:
+    /// <list type="bullet">
+    ///   <item>Plain UTF-8 text  →  returned as-is</item>
+    ///   <item>JSON string literal <c>"hello"</c>  →  the unquoted string</item>
+    ///   <item>JSON object <c>{"text":"hello"}</c>  →  the value of the "text" key</item>
+    /// </list>
+    /// This lets iOS Shortcuts in JSON body mode work alongside plain <c>curl -d</c> calls.
+    /// </summary>
+    private static string ExtractText(string raw)
+    {
+        var trimmed = raw.Trim();
+
+        // Only attempt JSON parsing if the body looks like JSON.
+        if (trimmed.StartsWith('"') || trimmed.StartsWith('{'))
+        {
+            try
+            {
+                using var doc = JsonDocument.Parse(trimmed);
+                var root = doc.RootElement;
+
+                // {"text": "..."} — iOS Shortcuts JSON object with a "text" key.
+                if (root.ValueKind == JsonValueKind.Object &&
+                    root.TryGetProperty("text", out var textProp))
+                    return textProp.GetString() ?? string.Empty;
+
+                // "plain string" — JSON string literal.
+                if (root.ValueKind == JsonValueKind.String)
+                    return root.GetString() ?? string.Empty;
+            }
+            catch { /* Not valid JSON — fall through and use raw body. */ }
+        }
+
+        return raw;
     }
 }
