@@ -1,5 +1,9 @@
 # PigeonPost
 
+<p align="center">
+  <img src="Assets/banner.png" alt="PigeonPost" width="220"/>
+</p>
+
 PigeonPost is a lightweight Windows 11 tray application that exposes a simple
 local HTTP API for transferring files and clipboard content from any network-connected
 device to your Windows PC.
