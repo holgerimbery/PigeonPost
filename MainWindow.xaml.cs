@@ -3,19 +3,13 @@
 
 using System;
 using System.ComponentModel;
-using System.Drawing;
-using System.Drawing.Drawing2D;
-using System.Drawing.Text;
 using System.IO;
-using System.Runtime.InteropServices;
 using H.NotifyIcon;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Media.Imaging;
 using PigeonPost.Services;
 using PigeonPost.ViewModels;
-using SDColor = System.Drawing.Color;
-using WUColor = Windows.UI.Color;
 
 namespace PigeonPost;
 
@@ -26,19 +20,15 @@ namespace PigeonPost;
 /// Responsibilities:
 ///   <list type="bullet">
 ///     <item>Create and own the <see cref="MainViewModel"/>.</item>
-///     <item>Wire ViewModel property changes to tray-icon updates.</item>
-///     <item>Generate and refresh a coloured <c>.ico</c> file at runtime for the tray.</item>
+///     <item>Wire ViewModel property changes to tray-icon tooltip updates.</item>
 ///     <item>Intercept the close button to hide instead of exiting (minimize-to-tray).</item>
 ///   </list>
 /// </summary>
 public sealed partial class MainWindow : Window
 {
-    /// <summary>
-    /// Temporary path for the generated tray icon.
-    /// Written once on startup and overwritten on every colour change.
-    /// </summary>
+    /// <summary>Path to the static app icon copied next to the exe.</summary>
     private static readonly string IconPath =
-        Path.Combine(Path.GetTempPath(), "pigeonpost-tray.ico");
+        Path.Combine(AppContext.BaseDirectory, "Assets", "PigeonPost.ico");
 
     public MainViewModel ViewModel { get; }
 
@@ -52,12 +42,6 @@ public sealed partial class MainWindow : Window
 
     private TaskbarIcon? _trayIcon;
     private MenuFlyoutItem? _pauseMenuItem;
-
-    /// <summary>
-    /// Incremented whenever the icon colour changes so the <see cref="BitmapImage"/>
-    /// URI includes a new query-string, bypassing WinUI's image cache.
-    /// </summary>
-    private int _iconRevision;
 
     public MainWindow(AppState state)
     {
@@ -117,13 +101,11 @@ public sealed partial class MainWindow : Window
     // ---------------------------------------------------------------- tray icon
 
     /// <summary>
-    /// Builds the tray icon, writes the initial <c>.ico</c> file, and registers
+    /// Builds the tray icon from the static <c>PigeonPost.ico</c> and registers
     /// the context-menu with Show / Pause / Quit items.
     /// </summary>
     private void InitializeTrayIcon()
     {
-        WriteIconFile(ViewModel.TrayIconColor);
-
         _trayIcon = new TaskbarIcon
         {
             ToolTipText    = "PigeonPost — Running",
@@ -137,11 +119,10 @@ public sealed partial class MainWindow : Window
     }
 
     /// <summary>
-    /// Creates a <see cref="BitmapImage"/> that points to the current icon file.
-    /// A revision query-string forces WinUI to re-load the file after a colour change.
+    /// Creates a <see cref="BitmapImage"/> pointing to the static app icon.
     /// </summary>
-    private BitmapImage BuildIconSource() =>
-        new(new Uri($"file:///{IconPath.Replace('\\', '/')}?v={_iconRevision}"));
+    private static BitmapImage BuildIconSource() =>
+        new(new Uri($"file:///{IconPath.Replace('\\', '/')}"));
 
     /// <summary>Builds the tray context menu: Show / Pause-Resume / Quit.</summary>
     private MenuFlyout BuildTrayMenu()
@@ -191,10 +172,7 @@ public sealed partial class MainWindow : Window
                 break;
 
             case nameof(MainViewModel.TrayIconColor):
-                // Regenerate the .ico file and point the tray icon at the new version.
-                _iconRevision++;
-                WriteIconFile(ViewModel.TrayIconColor);
-                _trayIcon.IconSource = BuildIconSource();
+                // Update the tooltip to reflect running / paused state.
                 _trayIcon.ToolTipText = ViewModel.IsPaused
                     ? "PigeonPost — Paused"
                     : "PigeonPost — Running";
@@ -202,51 +180,4 @@ public sealed partial class MainWindow : Window
         }
     }
 
-    // ---------------------------------------------------------------- icon generation
-
-    /// <summary>
-    /// Generates a 32×32 coloured circle with a centred "P" glyph and writes it
-    /// as a <c>.ico</c> file to <see cref="IconPath"/>.
-    /// Called on startup and on every pause/resume to reflect the current status colour.
-    /// </summary>
-    private static void WriteIconFile(WUColor color)
-    {
-        var bg = SDColor.FromArgb(color.A, color.R, color.G, color.B);
-
-        using var bmp = new Bitmap(32, 32);
-        using (var g = Graphics.FromImage(bmp))
-        {
-            g.SmoothingMode      = SmoothingMode.AntiAlias;
-            g.TextRenderingHint  = TextRenderingHint.AntiAliasGridFit;
-
-            // Fill the full 32x32 area so the circle touches every edge of the bitmap.
-            using var bgBrush = new SolidBrush(bg);
-            g.FillEllipse(bgBrush, 0, 0, 32, 32);
-
-            // Draw a centred "P" glyph in white over the coloured circle.
-            using var font  = new Font("Segoe UI", 16, System.Drawing.FontStyle.Bold,
-                                       GraphicsUnit.Pixel);
-            var size        = g.MeasureString("P", font);
-            g.DrawString("P", font, System.Drawing.Brushes.White,
-                         (32 - size.Width)  / 2f,
-                         (32 - size.Height) / 2f);
-        }
-
-        // Convert the GDI Bitmap to an HICON handle, then save as .ico.
-        IntPtr hIcon = bmp.GetHicon();
-        try
-        {
-            using var icon = Icon.FromHandle(hIcon);
-            using var fs   = File.Create(IconPath);
-            icon.Save(fs);
-        }
-        finally
-        {
-            // Always release the HICON handle to avoid a GDI handle leak.
-            DestroyIcon(hIcon);
-        }
-    }
-
-    [DllImport("user32.dll")]
-    private static extern bool DestroyIcon(IntPtr handle);
 }
