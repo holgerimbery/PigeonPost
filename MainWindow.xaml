@@ -211,9 +211,14 @@
                 <Button Content="Open Downloads"
                         Command="{x:Bind ViewModel.OpenDownloadsCommand}"/>
             </StackPanel>
-            <!-- Right-side controls: settings gear + hide-to-tray button -->
+            <!-- Right-side controls: help, settings gear, hide-to-tray button -->
             <StackPanel Orientation="Horizontal" Spacing="8"
                         HorizontalAlignment="Right" VerticalAlignment="Center">
+                <!-- ❓ opens the GitHub repository in the default browser -->
+                <Button x:Name="HelpButton" Click="HelpButton_Click"
+                        ToolTipService.ToolTip="Help / Documentation">
+                    <FontIcon Glyph="&#xE897;" FontSize="16"/>
+                </Button>
                 <!-- ⚙️ opens the Settings ContentDialog -->
                 <Button x:Name="SettingsButton" Click="SettingsButton_Click"
                         ToolTipService.ToolTip="Settings">

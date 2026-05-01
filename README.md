@@ -25,6 +25,7 @@ No cloud service, no account, no setup beyond the app itself.
 - **Pause / Resume** — keeps the port open but returns `503` to all incoming requests
 - **Open Downloads** button
 - **Settings dialog** (⚙️ gear button) — configure the downloads folder, choose Light / Dark / System theme, toggle Start with Windows
+- **Help button** (❓) — opens the GitHub repository documentation in your default browser
 - **Minimize to tray** — the close button hides the window; left-click the icon to restore
 - **Tray context menu**: Show window · Pause / Resume · Quit
 - **Start with Windows** — optional autostart toggle; app launches hidden to tray

@@ -232,6 +232,24 @@ public sealed partial class MainWindow : Window
             _       => ElementTheme.Default,   // "System" → follow Windows
         };
 
+    // ---------------------------------------------------------------- help
+
+    /// <summary>
+    /// Opens the PigeonPost GitHub repository in the system default browser.
+    /// </summary>
+    private void HelpButton_Click(object sender, RoutedEventArgs e)
+    {
+        try
+        {
+            System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo
+            {
+                FileName        = "https://github.com/holgerimbery/PigeonPost",
+                UseShellExecute = true,
+            });
+        }
+        catch { /* browser unavailable — silently ignore */ }
+    }
+
     // ---------------------------------------------------------------- settings
 
     /// <summary>
