@@ -12,6 +12,60 @@
     </Window.SystemBackdrop>
 
     <Grid x:Name="RootGrid" RowSpacing="12" Padding="24">
+
+        <VisualStateManager.VisualStateGroups>
+            <VisualStateGroup x:Name="StatCardLayout">
+                <!--
+                    Narrow (window < 520 px): stat cards wrap to a 2 × 2 grid.
+                    Each card spans 2 of the 4 equal columns, so both cards in a
+                    row are equal width.  MinWindowWidth=0 is always satisfied and
+                    acts as the base / fallback state.
+                -->
+                <VisualState x:Name="StatNarrow">
+                    <VisualState.StateTriggers>
+                        <AdaptiveTrigger MinWindowWidth="0"/>
+                    </VisualState.StateTriggers>
+                    <VisualState.Setters>
+                        <Setter Target="StatCard0.(Grid.Column)"     Value="0"/>
+                        <Setter Target="StatCard0.(Grid.ColumnSpan)" Value="2"/>
+                        <Setter Target="StatCard0.(Grid.Row)"        Value="0"/>
+                        <Setter Target="StatCard1.(Grid.Column)"     Value="2"/>
+                        <Setter Target="StatCard1.(Grid.ColumnSpan)" Value="2"/>
+                        <Setter Target="StatCard1.(Grid.Row)"        Value="0"/>
+                        <Setter Target="StatCard2.(Grid.Column)"     Value="0"/>
+                        <Setter Target="StatCard2.(Grid.ColumnSpan)" Value="2"/>
+                        <Setter Target="StatCard2.(Grid.Row)"        Value="1"/>
+                        <Setter Target="StatCard3.(Grid.Column)"     Value="2"/>
+                        <Setter Target="StatCard3.(Grid.ColumnSpan)" Value="2"/>
+                        <Setter Target="StatCard3.(Grid.Row)"        Value="1"/>
+                    </VisualState.Setters>
+                </VisualState>
+                <!--
+                    Wide (window ≥ 520 px): stat cards sit in a single 4-column row.
+                    AdaptiveTrigger with the higher MinWindowWidth wins when both
+                    triggers are satisfied, so this state overrides StatNarrow.
+                -->
+                <VisualState x:Name="StatWide">
+                    <VisualState.StateTriggers>
+                        <AdaptiveTrigger MinWindowWidth="520"/>
+                    </VisualState.StateTriggers>
+                    <VisualState.Setters>
+                        <Setter Target="StatCard0.(Grid.Column)"     Value="0"/>
+                        <Setter Target="StatCard0.(Grid.ColumnSpan)" Value="1"/>
+                        <Setter Target="StatCard0.(Grid.Row)"        Value="0"/>
+                        <Setter Target="StatCard1.(Grid.Column)"     Value="1"/>
+                        <Setter Target="StatCard1.(Grid.ColumnSpan)" Value="1"/>
+                        <Setter Target="StatCard1.(Grid.Row)"        Value="0"/>
+                        <Setter Target="StatCard2.(Grid.Column)"     Value="2"/>
+                        <Setter Target="StatCard2.(Grid.ColumnSpan)" Value="1"/>
+                        <Setter Target="StatCard2.(Grid.Row)"        Value="0"/>
+                        <Setter Target="StatCard3.(Grid.Column)"     Value="3"/>
+                        <Setter Target="StatCard3.(Grid.ColumnSpan)" Value="1"/>
+                        <Setter Target="StatCard3.(Grid.Row)"        Value="0"/>
+                    </VisualState.Setters>
+                </VisualState>
+            </VisualStateGroup>
+        </VisualStateManager.VisualStateGroups>
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="Auto"/>
@@ -63,15 +117,25 @@
         </Border>
 
         <!-- ============ Stat cards ============ -->
-        <Grid Grid.Row="2" ColumnSpacing="10">
+        <!--
+            Four equal-width stat cards.
+            - Wide (≥ 520 px): single row of 4 columns — set by the StatWide VisualState above.
+            - Narrow (< 520 px): 2 × 2 grid via ColumnSpan — set by the StatNarrow VisualState.
+            The Grid always has 4 columns and 2 rows; VisualState Setters reposition the cards.
+        -->
+        <Grid Grid.Row="2" ColumnSpacing="10" RowSpacing="10">
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="*"/>
                 <ColumnDefinition Width="*"/>
                 <ColumnDefinition Width="*"/>
                 <ColumnDefinition Width="*"/>
             </Grid.ColumnDefinitions>
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+            </Grid.RowDefinitions>
 
-            <Border Grid.Column="0" Style="{StaticResource CardStyle}">
+            <Border x:Name="StatCard0" Grid.Column="0" Style="{StaticResource CardStyle}">
                 <StackPanel>
                     <TextBlock Style="{StaticResource StatValueStyle}"
                                Text="{x:Bind ViewModel.FilesReceived, Mode=OneWay}"/>
@@ -79,7 +143,7 @@
                 </StackPanel>
             </Border>
 
-            <Border Grid.Column="1" Style="{StaticResource CardStyle}">
+            <Border x:Name="StatCard1" Grid.Column="1" Style="{StaticResource CardStyle}">
                 <StackPanel>
                     <TextBlock Style="{StaticResource StatValueStyle}"
                                Text="{x:Bind ViewModel.ClipboardSends, Mode=OneWay}"/>
@@ -87,7 +151,7 @@
                 </StackPanel>
             </Border>
 
-            <Border Grid.Column="2" Style="{StaticResource CardStyle}">
+            <Border x:Name="StatCard2" Grid.Column="2" Style="{StaticResource CardStyle}">
                 <StackPanel>
                     <TextBlock Style="{StaticResource StatValueStyle}"
                                Text="{x:Bind ViewModel.ClipboardReceives, Mode=OneWay}"/>
@@ -95,7 +159,7 @@
                 </StackPanel>
             </Border>
 
-            <Border Grid.Column="3" Style="{StaticResource CardStyle}">
+            <Border x:Name="StatCard3" Grid.Column="3" Style="{StaticResource CardStyle}">
                 <StackPanel>
                     <TextBlock Style="{StaticResource StatValueStyle}"
                                Text="{x:Bind ViewModel.UptimeText, Mode=OneWay}"
