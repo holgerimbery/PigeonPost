@@ -4,6 +4,9 @@
 using System;
 using System.IO;
 using Microsoft.UI.Xaml;
+using Microsoft.Windows.AppNotifications;
+using Microsoft.Windows.AppNotifications.Builder;
+using PigeonPost.Models;
 using PigeonPost.Services;
 using PigeonPost.ViewModels;
 
@@ -14,9 +17,12 @@ namespace PigeonPost;
 ///
 /// Startup sequence:
 ///   1. Create <see cref="AppState"/> (shared across all components).
-///   2. Open <see cref="MainWindow"/> (which creates the <see cref="MainViewModel"/>).
-///   3. Start <see cref="ListenerService"/> using the window's DispatcherQueue so
+///   2. Register Windows toast notifications (AppNotificationManager).
+///   3. Open <see cref="MainWindow"/> (which creates the <see cref="MainViewModel"/>).
+///   4. Start <see cref="ListenerService"/> using the window's DispatcherQueue so
 ///      clipboard operations can be marshalled to the UI thread.
+///   5. Start <see cref="IpMonitorService"/> to detect network changes and restart
+///      the listener automatically.
 /// </summary>
 public partial class App : Application
 {
@@ -28,6 +34,9 @@ public partial class App : Application
 
     /// <summary>The active HTTP listener; exposed so it can be stopped on shutdown if needed.</summary>
     public static ListenerService? Listener { get; private set; }
+
+    /// <summary>Monitors network address changes and triggers listener restarts.</summary>
+    public static IpMonitorService? IpMonitor { get; private set; }
 
     private MainWindow? _window;
 
@@ -47,6 +56,13 @@ public partial class App : Application
         };
 
         InitializeComponent();
+
+        // Register for Windows toast notifications.
+        // For unpackaged apps this uses the process AUMID; must be called before any
+        // AppNotificationManager.Show() call. Failures are silently swallowed so a
+        // machine policy or consent screen can't prevent the app from starting.
+        try { AppNotificationManager.Default.Register(); }
+        catch { /* notifications unavailable — continue without them */ }
     }
 
     protected override void OnLaunched(LaunchActivatedEventArgs args)
@@ -60,5 +76,41 @@ public partial class App : Application
         // Start the HTTP listener so remote clients can send files and clipboard data.
         Listener = new ListenerService(State, _window.DispatcherQueue);
         Listener.Start();
+
+        // Start the IP monitor; restart the listener and notify the user on change.
+        IpMonitor = new IpMonitorService();
+        IpMonitor.IpChanged += OnIpChanged;
+        IpMonitor.Start();
+    }
+
+    /// <summary>
+    /// Called on a thread-pool thread when the primary IP address changes.
+    /// Restarts the HTTP listener so it binds to the new address, updates the UI,
+    /// logs the event, and shows a Windows toast notification.
+    /// </summary>
+    private void OnIpChanged(object? sender, IpChangedEventArgs e)
+    {
+        // Restart the listener so it binds to the new interface/address.
+        Listener?.Restart();
+
+        // Update the address card in the UI.
+        ViewModel?.UpdateListenAddress(e.NewIp);
+
+        // Log the change so the user can see it in the activity log.
+        State.Emit(LogLevel.Warn,
+            $"IP address changed: {e.PreviousIp} → {e.NewIp} · Server restarted automatically");
+
+        // Show a Windows toast notification (works even when the window is minimised to tray).
+        try
+        {
+            var notification = new AppNotificationBuilder()
+                .AddText("PigeonPost — Network Change Detected")
+                .AddText($"New address: http://{e.NewIp}:{Constants.Port}/")
+                .AddText("The server was restarted automatically.")
+                .BuildNotification();
+
+            AppNotificationManager.Default.Show(notification);
+        }
+        catch { /* notification failure must never crash the app */ }
     }
 }

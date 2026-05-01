@@ -201,6 +201,15 @@ public sealed class ListenerService : IDisposable
         try { _listener.Stop(); } catch { /* best-effort */ }
     }
 
+    /// <summary>Stops and restarts the HTTP listener, rebinding to the current network interfaces.</summary>
+    public void Restart()
+    {
+        Stop();
+        try { _listener.Close(); } catch { /* already closed */ }
+        _listener = new HttpListener();
+        Start();
+    }
+
     /// <inheritdoc/>
     public void Dispose() => Stop();
 

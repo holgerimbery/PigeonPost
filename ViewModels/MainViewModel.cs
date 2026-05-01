@@ -91,6 +91,15 @@ public partial class MainViewModel : ObservableObject
         _uptimeTimer.Start();
     }
 
+    // ---------------------------------------------------------------- public helpers
+
+    /// <summary>
+    /// Updates the listen-address card to reflect a new IP after a network change.
+    /// Safe to call from any thread — marshals to the UI thread internally.
+    /// </summary>
+    public void UpdateListenAddress(string newIp) =>
+        _ui.TryEnqueue(() => ListenAddress = $"http://{newIp}:{Constants.Port}");
+
     // ---------------------------------------------------------------- event handlers
 
     /// <summary>
