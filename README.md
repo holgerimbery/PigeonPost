@@ -34,11 +34,16 @@ No cloud service, no account, no setup beyond the app itself.
 
 ## Install
 
-Download `PigeonPost-win-x64-Setup.exe` from the [latest GitHub Release](https://github.com/holgerimbery/PigeonPost/releases/latest) and run it.
+Download the installer for your architecture from the [latest GitHub Release](https://github.com/holgerimbery/PigeonPost/releases/latest) and run it.
 
-The installer is built by Velopack and handles installation, desktop shortcuts, and future updates automatically.
+| Architecture | Installer |
+|---|---|
+| **Intel / AMD 64-bit** (most PCs) | `PigeonPost-win-x64-Setup.exe` |
+| **ARM 64-bit** (Snapdragon X, Surface Pro X, …) | `PigeonPost-win-arm64-Setup.exe` |
 
-> **ARM-based PCs:** download `PigeonPost-win-arm64-Setup.exe` instead.
+The installer is built by Velopack and handles installation, Start Menu shortcuts, and future auto-updates.
+Each architecture has its own update feed (`releases.win-x64.json` / `releases.win-arm64.json`).
+Velopack stamps the channel into the installation so the in-app updater always fetches the correct feed automatically — no configuration required.
 
 ---
 

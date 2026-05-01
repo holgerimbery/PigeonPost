@@ -2,17 +2,20 @@
 # Licensed under the MIT License. See LICENSE in the project root for license information.
 #
 # Triggered when a tag matching v* is pushed (e.g. v1.0.0).
-# Builds a Velopack installer + update feed for Windows x64 and attaches the
-# assets to the GitHub Release so the in-app auto-updater can find them.
+# Builds Velopack installers + update feeds for Windows x64 AND arm64 and attaches
+# all assets to the GitHub Release so the in-app auto-updater can find them.
+#
+# Each architecture is a separate Velopack "channel":
+#   win-x64  → PigeonPost-win-x64-Setup.exe  + releases.win-x64.json
+#   win-arm64→ PigeonPost-win-arm64-Setup.exe + releases.win-arm64.json
+#
+# The installed app knows its own channel (stamped by vpk at install time) so
+# UpdateManager.CheckForUpdatesAsync() automatically reads the right feed file.
+# Cross-compilation of arm64 works fine on the x64 windows-latest runner.
 #
 # How to release:
-#   git tag v1.0.0 -m "Release 1.0.0"
-#   git push origin v1.0.0
-#
-# Velopack release assets uploaded per release:
-#   - PigeonPost-win-x64-Setup.exe   (first-time installer)
-#   - PigeonPost-win-x64-full.nupkg  (full update package)
-#   - releases.win-x64.json          (update feed — read by UpdateManager)
+#   git tag v1.1.0 -m "Release 1.1.0"
+#   git push origin v1.1.0
 
 name: Release
 
@@ -23,10 +26,18 @@ on:
 
 jobs:
   build:
-    name: Build & release (Velopack)
+    name: Build & release (${{ matrix.channel }})
     runs-on: windows-latest
     permissions:
       contents: write   # required to create/update the GitHub Release and upload assets
+
+    strategy:
+      matrix:
+        include:
+          - rid: win-x64
+            channel: win-x64
+          - rid: win-arm64
+            channel: win-arm64
 
     steps:
       - name: Checkout
@@ -53,44 +64,46 @@ jobs:
       # Velopack's vpk tool needs all the DLLs/assets in a directory to pack them.
       # /p:Version overrides the csproj value so the assembly version always matches
       # the git tag — this is what the in-app footer reads at runtime.
-      - name: Publish self-contained folder
+      - name: Publish self-contained folder (${{ matrix.rid }})
+        shell: pwsh
         run: |
           dotnet publish PigeonPost.csproj `
             -c Release `
-            -r win-x64 `
+            -r ${{ matrix.rid }} `
             --self-contained true `
             /p:WindowsAppSdkSelfContained=true `
             /p:PublishSingleFile=false `
             /p:EnableMsixTooling=true `
             /p:Version=$env:PACK_VERSION `
-            /p:FileVersion=$env:PACK_VERSION.0 `
-            /p:AssemblyVersion=$env:PACK_VERSION.0 `
-            -o publish
+            /p:FileVersion="$env:PACK_VERSION.0" `
+            /p:AssemblyVersion="$env:PACK_VERSION.0" `
+            -o publish-${{ matrix.rid }}
 
       # Install the Velopack CLI tool (vpk) globally.
       - name: Install vpk
         run: dotnet tool install -g vpk
 
-      # Pack the published output into a Velopack release.
-      # Creates: releases/PigeonPost-win-x64-Setup.exe
-      #          releases/PigeonPost-win-x64-full.nupkg
-      #          releases/releases.win-x64.json  (the update feed)
-      - name: Pack with vpk
+      # Pack the published output into a Velopack release for this channel.
+      # Creates (in releases-{channel}/):
+      #   PigeonPost-{channel}-Setup.exe   — first-time installer
+      #   PigeonPost-{channel}-full.nupkg  — full update package
+      #   releases.{channel}.json          — update feed read by UpdateManager
+      - name: Pack with vpk (${{ matrix.channel }})
         shell: pwsh
         run: |
           vpk pack `
             --packId   PigeonPost `
             --packVersion $env:PACK_VERSION `
-            --packDir  publish `
+            --packDir  publish-${{ matrix.rid }} `
             --mainExe  PigeonPost.exe `
-            --channel  win-x64 `
-            --outputDir releases
+            --channel  ${{ matrix.channel }} `
+            --outputDir releases-${{ matrix.channel }}
 
-      # Attach every file in the releases/ folder to the GitHub Release.
-      # The update feed (releases.win-x64.json) MUST be present so that
-      # GithubSource can discover available versions.
-      - name: Create GitHub Release and upload assets
+      # Attach every file for this channel to the GitHub Release.
+      # Running from parallel matrix jobs: softprops/action-gh-release handles
+      # uploading from multiple jobs to the same release correctly.
+      - name: Upload assets to GitHub Release
         uses: softprops/action-gh-release@v2
         with:
           generate_release_notes: true
-          files: releases/*
+          files: releases-${{ matrix.channel }}/*
