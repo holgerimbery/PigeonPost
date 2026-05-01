@@ -12,6 +12,10 @@ Any HTTP-capable client can use it — automation tools like Android Tasker,
 command-line utilities like `curl`, scripts, or custom apps.
 No cloud service, no account, no setup beyond the app itself.
 
+The [HTTP API is fully documented in the wiki](https://github.com/holgerimbery/PigeonPost/wiki/HTTP-API-Reference) —
+making it straightforward to build a native companion app for Android, Linux, macOS,
+or any other platform.
+
 **iPhone and iPad users** can get started right away using Apple Shortcuts —
 step-by-step setup instructions are in the [iOS Shortcuts wiki page](https://github.com/holgerimbery/PigeonPost/wiki/iOS-Shortcuts).
 
