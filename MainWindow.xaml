@@ -206,7 +206,7 @@
 
         <!-- ============ Activity log (open by default, collapsible) ============ -->
         <Expander Grid.Row="4" HorizontalAlignment="Stretch"
-                  HorizontalContentAlignment="Stretch" IsExpanded="True">
+                  HorizontalContentAlignment="Stretch" IsExpanded="False">
             <Expander.Header>
                 <!--
                     Header row: title on the left, live entry-count badge in the middle,
