@@ -4,6 +4,7 @@
 using System;
 using System.ComponentModel;
 using System.IO;
+using CommunityToolkit.Mvvm.Input;
 using H.NotifyIcon;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
@@ -144,32 +145,48 @@ public sealed partial class MainWindow : Window
         new(new Uri($"file:///{IconPath.Replace('\\', '/')}"));
 
     /// <summary>Builds the tray context menu: Show / Pause-Resume / Quit.</summary>
+    /// <remarks>
+    /// Uses <c>Command</c> instead of <c>Click</c> — H.NotifyIcon invokes ICommand
+    /// bindings reliably regardless of the internal window/thread it uses for its flyout,
+    /// whereas <c>Click</c> event handlers can silently fail to fire.
+    /// </remarks>
     private MenuFlyout BuildTrayMenu()
     {
         var menu = new MenuFlyout();
 
-        var show = new MenuFlyoutItem { Text = "Show window" };
-        show.Click += (_, _) =>
-            DispatcherQueue.TryEnqueue(() => ViewModel.ShowWindowCommand.Execute(null));
-        menu.Items.Add(show);
+        // Show window — marshal to UI thread via DispatcherQueue as an extra safety net.
+        menu.Items.Add(new MenuFlyoutItem
+        {
+            Text    = "Show window",
+            Command = new RelayCommand(() =>
+                DispatcherQueue.TryEnqueue(() => ViewModel.ShowWindowCommand.Execute(null))),
+        });
 
         // "Pause" / "Resume" label mirrors the main-window button text.
-        _pauseMenuItem = new MenuFlyoutItem { Text = ViewModel.PauseButtonText };
-        _pauseMenuItem.Click += (_, _) =>
-            DispatcherQueue.TryEnqueue(() => ViewModel.TogglePauseCommand.Execute(null));
+        // TogglePause self-dispatches to the UI thread internally, so no
+        // additional DispatcherQueue.TryEnqueue wrapper is needed here.
+        _pauseMenuItem = new MenuFlyoutItem
+        {
+            Text    = ViewModel.PauseButtonText,
+            Command = new RelayCommand(() => ViewModel.TogglePauseCommand.Execute(null)),
+        };
         menu.Items.Add(_pauseMenuItem);
 
         menu.Items.Add(new MenuFlyoutSeparator());
 
-        var quit = new MenuFlyoutItem { Text = "Quit" };
-        quit.Click += (_, _) =>
-            DispatcherQueue.TryEnqueue(() =>
+        // Quit — dispose the tray icon first, then call Environment.Exit(0).
+        // Environment.Exit is used instead of Application.Current.Exit() because
+        // the latter can be blocked or silently no-op in unpackaged WinUI 3 apps
+        // when background threads are still running.
+        menu.Items.Add(new MenuFlyoutItem
+        {
+            Text    = "Quit",
+            Command = new RelayCommand(() =>
             {
-                _isQuitting = true;
                 _trayIcon?.Dispose();
-                Application.Current.Exit();
-            });
-        menu.Items.Add(quit);
+                Environment.Exit(0);
+            }),
+        });
 
         return menu;
     }

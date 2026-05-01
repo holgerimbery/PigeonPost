@@ -193,6 +193,11 @@ public partial class MainViewModel : ObservableObject
     [RelayCommand]
     private void TogglePause()
     {
+        // Self-dispatch to the UI thread if invoked from H.NotifyIcon's notification
+        // thread — RefreshStatusColors() accesses Application.Current.Resources which
+        // must be called on the UI thread.
+        if (!_ui.HasThreadAccess) { _ui.TryEnqueue(TogglePause); return; }
+
         _state.Paused = !_state.Paused;
         IsPaused      = _state.Paused;
 

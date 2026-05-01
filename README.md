@@ -24,6 +24,7 @@ No cloud service, no account, no setup beyond the app itself.
 - **Collapsible activity log** with colour-coded entries that adapt to the current theme
 - **Pause / Resume** — keeps the port open but returns `503` to all incoming requests
 - **Open Downloads** button
+- **Settings dialog** (⚙️ gear button) — configure the downloads folder, choose Light / Dark / System theme, toggle Start with Windows
 - **Minimize to tray** — the close button hides the window; left-click the icon to restore
 - **Tray context menu**: Show window · Pause / Resume · Quit
 - **Start with Windows** — optional autostart toggle; app launches hidden to tray
@@ -368,13 +369,17 @@ PigeonPost monitors network changes continuously in the background and reacts au
 
 ## Dark and light mode
 
-PigeonPost follows the Windows system colour mode automatically:
+PigeonPost supports three theme modes, selectable in **Settings** (⚙️ gear button):
 
-- Status indicator (header ellipse + tray icon) and activity-log labels use Windows 11
-  Fluent colours defined in `App.xaml` `ThemeDictionaries`.
-- The `MainViewModel.RefreshStatusColors()` method is called at startup and whenever
-  the OS theme changes (`RootGrid.ActualThemeChanged`) so colours update live without
-  restarting the app.
+- **System** (default) — follows the Windows dark/light setting automatically
+- **Light** — always light
+- **Dark** — always dark
+
+Status indicator (header ellipse + tray icon) and activity-log labels use Windows 11
+Fluent colours defined in `App.xaml` `ThemeDictionaries`.
+The `MainViewModel.RefreshStatusColors()` method is called at startup and whenever
+the OS theme changes (`RootGrid.ActualThemeChanged`) so colours update live without
+restarting the app.
 
 ---
 
