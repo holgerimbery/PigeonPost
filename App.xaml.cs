@@ -99,7 +99,8 @@ public partial class App : Application
 
         // Start the IP monitor; restart the listener and notify the user on change.
         IpMonitor = new IpMonitorService();
-        IpMonitor.NetworkChanged += OnNetworkChanged;
+        IpMonitor.NetworkChanged  += OnNetworkChanged;
+        IpMonitor.TailscaleChanged += OnTailscaleChanged;
         IpMonitor.Start();
 
         // Check for updates at startup, then every 24 hours while the app is running.
@@ -197,6 +198,41 @@ public partial class App : Application
                     $"📡 PigeonPost — {KindLabel(e.NewKind)} IP Changed",
                     $"New address: http://{e.NewIp}:{Constants.Port}/",
                     $"Previous: {e.PreviousIp}. Server restarted.");
+                break;
+        }
+    }
+
+    /// <summary>
+    /// Called on a thread-pool thread when Tailscale connects, disconnects, or changes IP.
+    /// Updates the ViewModel and shows a toast notification.
+    /// </summary>
+    private void OnTailscaleChanged(object? sender, TailscaleChangedEventArgs e)
+    {
+        ViewModel?.UpdateTailscaleState(e.NewIp);
+
+        switch (e.Kind)
+        {
+            case TailscaleChangeKind.Connected:
+                State.Emit(LogLevel.Info,
+                    $"Tailscale connected · Remote access: http://{e.NewIp}:{Constants.Port}/");
+                ShowToast(
+                    "Tailscale Connected",
+                    $"Remote access: http://{e.NewIp}:{Constants.Port}/",
+                    "You can now reach PigeonPost from outside your home network.");
+                break;
+
+            case TailscaleChangeKind.Disconnected:
+                State.Emit(LogLevel.Warn,
+                    "Tailscale disconnected · Remote access unavailable.");
+                ShowToast(
+                    "Tailscale Disconnected",
+                    "Remote access via Tailscale is no longer available.",
+                    "Local network access is unaffected.");
+                break;
+
+            case TailscaleChangeKind.IpChanged:
+                State.Emit(LogLevel.Info,
+                    $"Tailscale IP changed: {e.PreviousIp} → {e.NewIp}");
                 break;
         }
     }

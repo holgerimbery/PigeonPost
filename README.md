@@ -73,6 +73,7 @@ Full documentation is in the [project wiki](https://github.com/holgerimbery/Pige
 |---|---|
 | [HTTP API Reference](https://github.com/holgerimbery/PigeonPost/wiki/HTTP-API-Reference) | Clipboard operations, file transfer, status codes, and curl examples |
 | [iOS Shortcuts](https://github.com/holgerimbery/PigeonPost/wiki/iOS-Shortcuts) | Step-by-step Shortcuts setup for iPhone / iPad (English + German) |
+| [Remote Access](https://github.com/holgerimbery/PigeonPost/wiki/Remote-Access) | Reach PigeonPost from outside your home network using Tailscale |
 | [Build from Source](https://github.com/holgerimbery/PigeonPost/wiki/Build-from-Source) | Prerequisites, build & run, Velopack publish, project layout |
 | [How It Works](https://github.com/holgerimbery/PigeonPost/wiki/How-It-Works) | HTTP listener binding, network change handling, dark / light mode |
 | [Troubleshooting](https://github.com/holgerimbery/PigeonPost/wiki/Troubleshooting) | Common issues, fixes, and security notes |

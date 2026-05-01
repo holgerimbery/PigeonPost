@@ -7,6 +7,44 @@ using System.Threading;
 
 namespace PigeonPost.Services;
 
+// ── Tailscale change classification ──────────────────────────────────────────
+
+/// <summary>Classifies a change in Tailscale connectivity.</summary>
+public enum TailscaleChangeKind
+{
+    /// <summary>Tailscale was not connected; now has a 100.x.x.x address.</summary>
+    Connected,
+
+    /// <summary>Tailscale was connected; no longer has a 100.x.x.x address.</summary>
+    Disconnected,
+
+    /// <summary>Tailscale is still connected but its IP address changed.</summary>
+    IpChanged,
+}
+
+/// <summary>Event arguments for a Tailscale connectivity change.</summary>
+public sealed class TailscaleChangedEventArgs : EventArgs
+{
+    /// <param name="previousIp">Tailscale IP before the change, or <c>null</c> when connecting for the first time.</param>
+    /// <param name="newIp">Tailscale IP after the change, or <c>null</c> when disconnecting.</param>
+    /// <param name="kind">Classification of what changed.</param>
+    public TailscaleChangedEventArgs(string? previousIp, string? newIp, TailscaleChangeKind kind)
+    {
+        PreviousIp = previousIp;
+        NewIp      = newIp;
+        Kind       = kind;
+    }
+
+    /// <summary>Tailscale IP that was active before the change (<c>null</c> ⟹ was not connected).</summary>
+    public string? PreviousIp { get; }
+
+    /// <summary>Tailscale IP that is active after the change (<c>null</c> ⟹ now disconnected).</summary>
+    public string? NewIp { get; }
+
+    /// <summary>Describes what kind of Tailscale transition occurred.</summary>
+    public TailscaleChangeKind Kind { get; }
+}
+
 // ── Change-kind classification ────────────────────────────────────────────────
 
 /// <summary>
@@ -108,8 +146,12 @@ public sealed class IpMonitorService : IDisposable
     /// <summary>Raised on a thread-pool thread when a meaningful network transition is detected.</summary>
     public event EventHandler<NetworkChangedEventArgs>? NetworkChanged;
 
+    /// <summary>Raised on a thread-pool thread when Tailscale connects, disconnects, or changes IP.</summary>
+    public event EventHandler<TailscaleChangedEventArgs>? TailscaleChanged;
+
     private string               _lastIp;
     private NetworkInterfaceKind _lastKind;
+    private string?              _lastTailscaleIp;
     private Timer?               _debounce;
     private bool                 _started;
 
@@ -117,6 +159,7 @@ public sealed class IpMonitorService : IDisposable
     {
         // Snapshot the current state so the first comparison has a baseline.
         (_lastIp, _lastKind) = NetworkHelper.GetNetworkState();
+        _lastTailscaleIp     = NetworkHelper.GetTailscaleIp();
     }
 
     /// <summary>Subscribes to OS network-change events and begins monitoring.</summary>
@@ -159,6 +202,7 @@ public sealed class IpMonitorService : IDisposable
     /// Invoked by the debounce timer after the network has settled.
     /// Compares current state to the last-known state and fires
     /// <see cref="NetworkChanged"/> when a meaningful change is detected.
+    /// Also checks for Tailscale connectivity changes and fires <see cref="TailscaleChanged"/>.
     /// </summary>
     private void CheckNetworkChange(object? _)
     {
@@ -166,16 +210,33 @@ public sealed class IpMonitorService : IDisposable
         var previousIp   = _lastIp;
         var previousKind = _lastKind;
 
-        // No change — nothing to do.
-        if (currentIp == previousIp && currentKind == previousKind) return;
+        // ── Primary network ──────────────────────────────────────────────────
+        if (currentIp != previousIp || currentKind != previousKind)
+        {
+            // Persist new baseline before raising the event (prevents double-firing).
+            _lastIp   = currentIp;
+            _lastKind = currentKind;
 
-        // Persist new baseline before raising the event (prevents double-firing).
-        _lastIp   = currentIp;
-        _lastKind = currentKind;
+            var changeKind = Classify(previousKind, currentKind, previousIp, currentIp);
+            NetworkChanged?.Invoke(this, new NetworkChangedEventArgs(
+                previousIp, currentIp, previousKind, currentKind, changeKind));
+        }
 
-        var changeKind = Classify(previousKind, currentKind, previousIp, currentIp);
-        NetworkChanged?.Invoke(this, new NetworkChangedEventArgs(
-            previousIp, currentIp, previousKind, currentKind, changeKind));
+        // ── Tailscale ────────────────────────────────────────────────────────
+        var currentTailscale  = NetworkHelper.GetTailscaleIp();
+        var previousTailscale = _lastTailscaleIp;
+
+        if (currentTailscale != previousTailscale)
+        {
+            _lastTailscaleIp = currentTailscale;
+
+            var tsKind = previousTailscale is null ? TailscaleChangeKind.Connected
+                       : currentTailscale  is null ? TailscaleChangeKind.Disconnected
+                       :                             TailscaleChangeKind.IpChanged;
+
+            TailscaleChanged?.Invoke(this, new TailscaleChangedEventArgs(
+                previousTailscale, currentTailscale, tsKind));
+        }
     }
 
     /// <summary>

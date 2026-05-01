@@ -124,11 +124,14 @@
         <!-- ============ Address card ============ -->
         <Border Grid.Row="2" Style="{StaticResource CardStyle}">
             <!--
-                Two-row layout prevents the "Listening on" and "Files saved to" lines
-                from overlapping when the window is resized narrower than ~500 px.
+                Three-row layout:
+                  Row 0 — LAN/primary listen address
+                  Row 1 — downloads folder path
+                  Row 2 — Tailscale address (collapsed when Tailscale is not connected)
             -->
             <Grid RowSpacing="4">
                 <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
                     <RowDefinition Height="Auto"/>
                     <RowDefinition Height="Auto"/>
                 </Grid.RowDefinitions>
@@ -147,6 +150,16 @@
                            Text="{x:Bind ViewModel.DownloadsLine, Mode=OneWay}"
                            TextTrimming="CharacterEllipsis"
                            ToolTipService.ToolTip="{x:Bind ViewModel.DownloadsLine, Mode=OneWay}"/>
+
+                <!-- Row 2: Tailscale address — shown only when Tailscale is connected -->
+                <StackPanel Grid.Row="2" Orientation="Horizontal" Spacing="8"
+                            Visibility="{x:Bind ViewModel.TailscaleAddressVisibility, Mode=OneWay}">
+                    <TextBlock Text="Tailscale" Opacity="0.6" VerticalAlignment="Center"/>
+                    <TextBlock Text="{x:Bind ViewModel.TailscaleAddress, Mode=OneWay}"
+                               FontFamily="Consolas" FontWeight="SemiBold"
+                               Foreground="{ThemeResource AccentTextFillColorPrimaryBrush}"
+                               VerticalAlignment="Center"/>
+                </StackPanel>
             </Grid>
         </Border>
 
