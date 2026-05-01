@@ -102,6 +102,58 @@ public sealed partial class SettingsDialog : ContentDialog
             DownloadsFolderBox.Text = folder.Path;
     }
 
+    // ── Update check ─────────────────────────────────────────────────────────
+
+    /// <summary>
+    /// Checks for a newer release on GitHub. Disables the button while checking,
+    /// then reports the result inline. If an update is available the button label
+    /// changes to "Download &amp; Install" and triggers the update on the next click.
+    /// </summary>
+    private async void CheckUpdateButton_Click(object sender, RoutedEventArgs e)
+    {
+        // First click — check for update.
+        if (CheckUpdateButton.Tag as string != "update-ready")
+        {
+            CheckUpdateButton.IsEnabled = false;
+            CheckUpdateButton.Content   = "Checking…";
+            UpdateStatusText.Visibility = Microsoft.UI.Xaml.Visibility.Collapsed;
+
+            var update = await UpdateService.CheckForUpdatesAsync();
+
+            if (update is null)
+            {
+                UpdateStatusText.Text       = "✅  You're up to date.";
+                UpdateStatusText.Visibility = Microsoft.UI.Xaml.Visibility.Visible;
+                CheckUpdateButton.Content   = "Check for Updates";
+                CheckUpdateButton.IsEnabled = true;
+            }
+            else
+            {
+                var newVer = update.TargetFullRelease?.Version?.ToString() ?? "newer version";
+                UpdateStatusText.Text       = $"🆕  Update available: v{newVer}";
+                UpdateStatusText.Visibility = Microsoft.UI.Xaml.Visibility.Visible;
+                CheckUpdateButton.Content   = "Download & Install";
+                CheckUpdateButton.Tag       = "update-ready";
+                CheckUpdateButton.IsEnabled = true;
+                // Store the UpdateInfo for the second click.
+                CheckUpdateButton.DataContext = update;
+            }
+
+            return;
+        }
+
+        // Second click — download and apply.
+        if (CheckUpdateButton.DataContext is not Velopack.UpdateInfo pendingUpdate) return;
+
+        CheckUpdateButton.IsEnabled = false;
+        CheckUpdateButton.Content   = "Downloading…";
+        UpdateStatusText.Text       = "Downloading update — the app will restart when ready.";
+
+        await UpdateService.DownloadAndApplyAsync(pendingUpdate, pct =>
+            DispatcherQueue.TryEnqueue(() =>
+                CheckUpdateButton.Content = $"Downloading… {pct}%"));
+    }
+
     // ── Helpers ───────────────────────────────────────────────────────────────
 
     /// <summary>Returns the <c>Tag</c> string of the currently selected theme radio button.</summary>

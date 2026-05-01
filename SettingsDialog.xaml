@@ -75,6 +75,23 @@
                 <RadioButton Content="🖥️  Follow Windows"  Tag="System"/>
             </RadioButtons>
 
+            <Rectangle Height="1" Margin="0,4"
+                       Fill="{ThemeResource DividerStrokeColorDefaultBrush}" Opacity="0.4"/>
+
+            <!-- ── Updates ──────────────────────────────────────────────────── -->
+            <TextBlock Text="Updates" FontWeight="SemiBold" FontSize="14"
+                       Foreground="{ThemeResource TextFillColorPrimaryBrush}"/>
+
+            <StackPanel Spacing="8">
+                <Button x:Name="CheckUpdateButton"
+                        Content="Check for Updates"
+                        Click="CheckUpdateButton_Click"/>
+                <TextBlock x:Name="UpdateStatusText"
+                           FontSize="12" Opacity="0.8"
+                           TextWrapping="Wrap"
+                           Visibility="Collapsed"/>
+            </StackPanel>
+
         </StackPanel>
     </ScrollViewer>
 </ContentDialog>
