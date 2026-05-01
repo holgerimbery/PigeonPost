@@ -60,6 +60,13 @@ public partial class MainViewModel : ObservableObject
 
     /// <summary>Formatted address shown in the address card (e.g. "http://192.168.1.5:2560").</summary>
     [ObservableProperty] private string _listenAddress = "";
+
+    /// <summary>Live count of log entries shown as a badge on the Activity log header.</summary>
+    [ObservableProperty] private string _logCount = "0";
+
+    /// <summary>Collapses the badge when there are no entries (avoids showing "0").</summary>
+    [ObservableProperty] private Microsoft.UI.Xaml.Visibility _logCountVisible =
+        Microsoft.UI.Xaml.Visibility.Collapsed;
 #pragma warning restore MVVMTK0045
 
     public MainViewModel(AppState state, DispatcherQueue ui)
@@ -95,6 +102,7 @@ public partial class MainViewModel : ObservableObject
             // Remove oldest entries to prevent unbounded memory growth.
             while (LogEntries.Count > LogCap)
                 LogEntries.RemoveAt(0);
+            UpdateLogBadge();
         });
     }
 
@@ -203,7 +211,20 @@ public partial class MainViewModel : ObservableObject
 
     /// <summary>Clears all entries from the activity log.</summary>
     [RelayCommand]
-    private void ClearLog() => LogEntries.Clear();
+    private void ClearLog()
+    {
+        LogEntries.Clear();
+        UpdateLogBadge();
+    }
+
+    /// <summary>Refreshes the log-count badge text and visibility.</summary>
+    private void UpdateLogBadge()
+    {
+        LogCount        = LogEntries.Count.ToString();
+        LogCountVisible = LogEntries.Count > 0
+            ? Microsoft.UI.Xaml.Visibility.Visible
+            : Microsoft.UI.Xaml.Visibility.Collapsed;
+    }
 
     /// <summary>
     /// Exits the application. The caller is responsible for disposing the tray icon

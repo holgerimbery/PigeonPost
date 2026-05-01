@@ -182,12 +182,27 @@
                     Command="{x:Bind ViewModel.HideToTrayCommand}"/>
         </Grid>
 
-        <!-- ============ Activity log (collapsible) ============ -->
+        <!-- ============ Activity log (open by default, collapsible) ============ -->
         <Expander Grid.Row="4" HorizontalAlignment="Stretch"
-                  HorizontalContentAlignment="Stretch" IsExpanded="False">
+                  HorizontalContentAlignment="Stretch" IsExpanded="True">
             <Expander.Header>
+                <!--
+                    Header row: title on the left, live entry-count badge in the middle,
+                    Clear button on the right.  The badge makes activity visible even
+                    when the expander is collapsed.
+                -->
                 <Grid>
-                    <TextBlock Text="Activity log" FontWeight="SemiBold" VerticalAlignment="Center"/>
+                    <StackPanel Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+                        <TextBlock Text="Activity log" FontWeight="SemiBold" VerticalAlignment="Center"/>
+                        <!-- Live count badge — updates whenever entries are added/cleared -->
+                        <Border CornerRadius="10" Padding="7,1"
+                                Background="{ThemeResource AppTitleBrush}"
+                                Visibility="{x:Bind ViewModel.LogCountVisible, Mode=OneWay}">
+                            <TextBlock Text="{x:Bind ViewModel.LogCount, Mode=OneWay}"
+                                       FontSize="11" FontWeight="SemiBold"
+                                       Foreground="White" VerticalAlignment="Center"/>
+                        </Border>
+                    </StackPanel>
                     <Button Content="Clear" HorizontalAlignment="Right"
                             Margin="0,0,12,0" FontSize="12"
                             Command="{x:Bind ViewModel.ClearLogCommand}"/>
