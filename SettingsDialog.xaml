@@ -10,58 +10,71 @@
     CloseButtonText="Cancel"
     DefaultButton="Primary">
 
-    <StackPanel Spacing="20" Width="380" Padding="0,8,0,0">
+    <!--
+        ScrollViewer prevents content from being clipped on small windows.
+        MaxHeight caps the scrollable area so the dialog never exceeds the screen.
+    -->
+    <ScrollViewer VerticalScrollBarVisibility="Auto" MaxHeight="480">
+        <StackPanel Spacing="20" Width="380" Padding="0,8,0,8">
 
-        <!-- ── General ──────────────────────────────────────────────────── -->
-        <TextBlock Text="General" FontWeight="SemiBold" FontSize="14"
-                   Foreground="{ThemeResource TextFillColorPrimaryBrush}"/>
+            <!-- ── General ──────────────────────────────────────────────────── -->
+            <TextBlock Text="General" FontWeight="SemiBold" FontSize="14"
+                       Foreground="{ThemeResource TextFillColorPrimaryBrush}"/>
 
-        <ToggleSwitch x:Name="AutostartSwitch"
-                      Header="Start with Windows"
-                      OffContent="" OnContent=""
-                      MinWidth="0"/>
+            <ToggleSwitch x:Name="AutostartSwitch"
+                          Header="Start with Windows"
+                          OffContent="" OnContent=""
+                          MinWidth="0"/>
 
-        <Rectangle Height="1" Margin="0,4"
-                   Fill="{ThemeResource DividerStrokeColorDefaultBrush}" Opacity="0.4"/>
+            <Rectangle Height="1" Margin="0,4"
+                       Fill="{ThemeResource DividerStrokeColorDefaultBrush}" Opacity="0.4"/>
 
-        <!-- ── Files ────────────────────────────────────────────────────── -->
-        <TextBlock Text="Files" FontWeight="SemiBold" FontSize="14"
-                   Foreground="{ThemeResource TextFillColorPrimaryBrush}"/>
+            <!-- ── Files ────────────────────────────────────────────────────── -->
+            <TextBlock Text="Files" FontWeight="SemiBold" FontSize="14"
+                       Foreground="{ThemeResource TextFillColorPrimaryBrush}"/>
 
-        <StackPanel Spacing="6">
-            <TextBlock Text="Save received files to" Opacity="0.7" FontSize="12"/>
-            <Grid ColumnSpacing="8">
-                <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="*"/>
-                    <ColumnDefinition Width="Auto"/>
-                </Grid.ColumnDefinitions>
-                <!-- Read-only; user selects via the Browse button -->
-                <TextBox x:Name="DownloadsFolderBox" Grid.Column="0"
-                         IsReadOnly="True" FontFamily="Consolas" FontSize="12"/>
-                <Button x:Name="BrowseButton" Grid.Column="1"
-                        Content="Browse" VerticalAlignment="Bottom"
-                        Click="BrowseButton_Click"/>
-            </Grid>
+            <StackPanel Spacing="6">
+                <TextBlock Text="Save received files to" Opacity="0.7" FontSize="12"/>
+                <Grid ColumnSpacing="8">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
+                    <!-- Read-only; user selects via the Browse button -->
+                    <TextBox x:Name="DownloadsFolderBox" Grid.Column="0"
+                             IsReadOnly="True" FontFamily="Consolas" FontSize="12"/>
+                    <Button x:Name="BrowseButton" Grid.Column="1"
+                            Content="Browse" VerticalAlignment="Bottom"
+                            Click="BrowseButton_Click"/>
+                </Grid>
+            </StackPanel>
+
+            <Rectangle Height="1" Margin="0,4"
+                       Fill="{ThemeResource DividerStrokeColorDefaultBrush}" Opacity="0.4"/>
+
+            <!-- ── Appearance ───────────────────────────────────────────────── -->
+            <TextBlock Text="Appearance" FontWeight="SemiBold" FontSize="14"
+                       Foreground="{ThemeResource TextFillColorPrimaryBrush}"/>
+
+            <!--
+                Three theme options; selecting one applies the change immediately so the
+                user gets a live preview — Cancel reverts the theme to what it was before
+                the dialog was opened.
+                The Header uses an explicit TextBlock to guarantee the correct foreground
+                in both light and dark mode (RadioButtons.Header defaults to a secondary
+                brush that can appear washed-out on light backgrounds).
+            -->
+            <RadioButtons x:Name="ThemeRadios"
+                          SelectionChanged="ThemeRadios_SelectionChanged">
+                <RadioButtons.Header>
+                    <TextBlock Text="Theme" FontSize="12"
+                               Foreground="{ThemeResource TextFillColorPrimaryBrush}"/>
+                </RadioButtons.Header>
+                <RadioButton Content="☀️  Light"           Tag="Light"/>
+                <RadioButton Content="🌙  Dark"            Tag="Dark"/>
+                <RadioButton Content="🖥️  Follow Windows"  Tag="System"/>
+            </RadioButtons>
+
         </StackPanel>
-
-        <Rectangle Height="1" Margin="0,4"
-                   Fill="{ThemeResource DividerStrokeColorDefaultBrush}" Opacity="0.4"/>
-
-        <!-- ── Appearance ───────────────────────────────────────────────── -->
-        <TextBlock Text="Appearance" FontWeight="SemiBold" FontSize="14"
-                   Foreground="{ThemeResource TextFillColorPrimaryBrush}"/>
-
-        <!--
-            Three theme options; selecting one applies the change immediately so the
-            user gets a live preview — Cancel reverts the theme to what it was before
-            the dialog was opened.
-        -->
-        <RadioButtons x:Name="ThemeRadios" Header="Theme"
-                      SelectionChanged="ThemeRadios_SelectionChanged">
-            <RadioButton Content="☀️  Light"           Tag="Light"/>
-            <RadioButton Content="🌙  Dark"            Tag="Dark"/>
-            <RadioButton Content="🖥️  Follow Windows"  Tag="System"/>
-        </RadioButtons>
-
-    </StackPanel>
+    </ScrollViewer>
 </ContentDialog>
