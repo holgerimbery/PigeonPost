@@ -140,8 +140,11 @@ PigeonPost/
 ├── App.xaml / App.xaml.cs       # Application bootstrap; ThemeDictionaries (Fluent Light/Dark)
 ├── MainWindow.xaml / .xaml.cs   # Mica window, layout, tray icon wiring, theme-change handler
 ├── Constants.cs                 # Port number, Downloads folder path
+├── SettingsDialog.xaml / .xaml.cs  # Modal settings dialog: theme, download folder, autostart
 ├── Assets/
-│   └── PigeonPost.ico           # Pigeon + envelope icon (7 sizes: 256 → 16 px)
+│   ├── PigeonPost.ico           # Pigeon + envelope icon (7 sizes: 256 → 16 px)
+│   ├── banner.png               # Banner image used in README
+│   └── PigeonPostGUI.jpg        # GUI screenshot used in README
 ├── Converters/
 │   ├── HexColorConverter.cs     # "#rrggbb" → SolidColorBrush (used in log list)
 │   └── BoolToVisibilityConverter.cs  # bool → Visibility (update banner)
@@ -154,6 +157,7 @@ PigeonPost/
 │   ├── IpMonitorService.cs      # Network-change detection (WiFi/LAN/offline/IP change)
 │   ├── ListenerService.cs       # HttpListener, clipboard ops, file upload; localhost fallback
 │   ├── NetworkHelper.cs         # Local-IP discovery and interface-kind detection
+│   ├── SettingsService.cs       # Persists theme, download folder, autostart preference (JSON)
 │   └── UpdateService.cs         # Velopack update check + download + apply
 └── ViewModels/
     └── MainViewModel.cs         # MVVM: observable properties, relay commands, uptime timer;
