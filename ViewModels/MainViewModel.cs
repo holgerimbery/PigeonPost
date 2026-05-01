@@ -132,7 +132,7 @@ public partial class MainViewModel : ObservableObject
     public void NotifyUpdateAvailable(string version) =>
         _ui.TryEnqueue(() =>
         {
-            UpdateVersionText = $"Version {version} is available — click Install &amp; Restart to update.";
+            UpdateVersionText = $"Version {version} is available — click Install & Restart to update.";
             UpdateAvailable   = true;
             OnPropertyChanged(nameof(UpdateBannerVisibility));
         });
