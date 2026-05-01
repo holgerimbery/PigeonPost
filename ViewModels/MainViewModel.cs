@@ -119,6 +119,25 @@ public partial class MainViewModel : ObservableObject
         UptimeText = $"{(int)d.TotalHours:D2}:{d.Minutes:D2}:{d.Seconds:D2}";
     }
 
+    /// <summary>
+    /// Updates <see cref="StatusBrush"/> and <see cref="TrayIconColor"/> to the
+    /// theme-appropriate colour for the current running/paused state.
+    /// Looks up named brushes from <c>Application.Current.Resources</c> which returns
+    /// the Light or Dark variant depending on the active Windows theme.
+    /// Must be called on the UI thread.
+    /// </summary>
+    public void RefreshStatusColors()
+    {
+        var key       = _state.Paused ? "StatusPausedBrush" : "StatusRunningBrush";
+        var resources = Application.Current.Resources;
+
+        if (resources.TryGetValue(key, out var brushObj) && brushObj is SolidColorBrush scb)
+        {
+            StatusBrush   = scb;
+            TrayIconColor = scb.Color;
+        }
+    }
+
     // -------------------------------------------------------------- commands
 
     /// <summary>Toggles the paused state and updates all related visual indicators.</summary>
@@ -130,20 +149,19 @@ public partial class MainViewModel : ObservableObject
 
         if (_state.Paused)
         {
-            StatusText    = "Paused";
-            StatusBrush   = new SolidColorBrush(MUC.Goldenrod);
-            TrayIconColor = MUC.Goldenrod;
+            StatusText      = "Paused";
             PauseButtonText = "Resume";
             _state.Emit(LogLevel.Warn, "Server paused — incoming requests will be rejected");
         }
         else
         {
-            StatusText    = "Running";
-            StatusBrush   = new SolidColorBrush(MUC.SeaGreen);
-            TrayIconColor = MUC.SeaGreen;
+            StatusText      = "Running";
             PauseButtonText = "Pause";
             _state.Emit(LogLevel.Success, "Server resumed");
         }
+
+        // Re-resolve colour from the active theme dictionary (light or dark).
+        RefreshStatusColors();
     }
 
     /// <summary>Opens the Downloads folder in Windows Explorer.</summary>

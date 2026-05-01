@@ -56,6 +56,15 @@ public sealed partial class MainWindow : Window
         ViewModel.HostWindow = this;
         Title = "PigeonPost";
 
+        // Point the window/taskbar icon at the static pigeon+envelope ICO.
+        try
+        {
+            var icoPath = Path.Combine(AppContext.BaseDirectory, "Assets", "PigeonPost.ico");
+            if (File.Exists(icoPath))
+                AppWindow?.SetIcon(icoPath);
+        }
+        catch { /* AppWindow unavailable in some hosts */ }
+
         // Set an initial window size; failure is non-fatal (e.g. on some WinUI hosts).
         try
         {
@@ -68,6 +77,12 @@ public sealed partial class MainWindow : Window
             AppWindow.Closing += OnAppWindowClosing;
 
         InitializeTrayIcon();
+
+        // Apply the initial theme-appropriate status colours now that XAML resources are loaded.
+        ViewModel.RefreshStatusColors();
+
+        // Re-apply status colours whenever the user switches Windows dark/light mode.
+        RootGrid.ActualThemeChanged += (_, _) => ViewModel.RefreshStatusColors();
 
         // Keep the tray icon and tooltip in sync when the ViewModel changes.
         ViewModel.PropertyChanged += OnViewModelPropertyChanged;

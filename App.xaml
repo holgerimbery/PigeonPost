@@ -10,6 +10,45 @@
                 <XamlControlsResources xmlns="using:Microsoft.UI.Xaml.Controls"/>
             </ResourceDictionary.MergedDictionaries>
 
+            <!--
+                Theme-adaptive semantic brushes.
+                Keys are looked up at runtime by MainViewModel.RefreshStatusColors()
+                and LogEntry.LevelBrush so both C# code and XAML get the right colour
+                for the current Windows light/dark mode.
+                Colours follow the Windows 11 Fluent colour palette.
+            -->
+            <ResourceDictionary.ThemeDictionaries>
+
+                <ResourceDictionary x:Key="Light">
+                    <!-- Status indicator (header ellipse + tray icon) -->
+                    <SolidColorBrush x:Key="StatusRunningBrush" Color="#107C10"/>
+                    <SolidColorBrush x:Key="StatusPausedBrush"  Color="#835300"/>
+                    <SolidColorBrush x:Key="StatusErrorBrush"   Color="#C42B1C"/>
+                    <!-- Activity-log level labels -->
+                    <SolidColorBrush x:Key="LogFileBrush"       Color="#7B2FBE"/>
+                    <SolidColorBrush x:Key="LogClipboardBrush"  Color="#005FB8"/>
+                    <SolidColorBrush x:Key="LogWarnBrush"       Color="#835300"/>
+                    <SolidColorBrush x:Key="LogErrorBrush"      Color="#C42B1C"/>
+                    <SolidColorBrush x:Key="LogSuccessBrush"    Color="#107C10"/>
+                    <SolidColorBrush x:Key="LogInfoBrush"       Color="#5D5A58"/>
+                </ResourceDictionary>
+
+                <ResourceDictionary x:Key="Dark">
+                    <!-- Status indicator (header ellipse + tray icon) -->
+                    <SolidColorBrush x:Key="StatusRunningBrush" Color="#6CCB5F"/>
+                    <SolidColorBrush x:Key="StatusPausedBrush"  Color="#FFC83D"/>
+                    <SolidColorBrush x:Key="StatusErrorBrush"   Color="#FF99A4"/>
+                    <!-- Activity-log level labels -->
+                    <SolidColorBrush x:Key="LogFileBrush"       Color="#C79AF7"/>
+                    <SolidColorBrush x:Key="LogClipboardBrush"  Color="#60CDFF"/>
+                    <SolidColorBrush x:Key="LogWarnBrush"       Color="#FFC83D"/>
+                    <SolidColorBrush x:Key="LogErrorBrush"      Color="#FF99A4"/>
+                    <SolidColorBrush x:Key="LogSuccessBrush"    Color="#6CCB5F"/>
+                    <SolidColorBrush x:Key="LogInfoBrush"       Color="#9D9B99"/>
+                </ResourceDictionary>
+
+            </ResourceDictionary.ThemeDictionaries>
+
             <!-- Reusable card style for stat tiles & content sections -->
             <Style x:Key="CardStyle" TargetType="Border">
                 <Setter Property="CornerRadius" Value="8"/>

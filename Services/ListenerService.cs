@@ -43,27 +43,37 @@ public sealed class ListenerService : IDisposable
 
     /// <summary>
     /// Registers HTTP prefixes and starts the accept loop on a background thread.
-    /// Errors during startup (e.g. port already in use) are reported via
-    /// <see cref="AppState.Emit"/> and the method returns without throwing.
+    ///
+    /// <para>
+    /// Strategy: try to bind both <c>localhost</c> and every active LAN IPv4 address so
+    /// that remote devices on the local network can reach the API without any special
+    /// network configuration.  If that fails with "Access is denied" (Windows HTTP.sys
+    /// requires a URL ACL reservation or elevated privileges for non-loopback addresses),
+    /// the listener falls back to <c>localhost</c> only so the app still works for
+    /// local use.  To enable LAN access, run the app once as Administrator or register
+    /// a permanent ACL with:
+    /// <c>netsh http add urlacl url=http://+:{port}/ user=%USERNAME%</c>
+    /// </para>
     /// </summary>
     public void Start()
     {
-        // Always bind localhost so loopback requests work even with no network adapters.
+        // First attempt: localhost + all active LAN IPv4 addresses.
         _listener.Prefixes.Add($"http://localhost:{Constants.Port}/");
-
-        // Bind every active IPv4 address to accept traffic from other devices on the LAN.
         foreach (var ip in NetworkHelper.GetAllBindableIPv4())
             _listener.Prefixes.Add($"http://{ip}:{Constants.Port}/");
 
-        try
+        if (!TryStartListener())
         {
-            _listener.Start();
-        }
-        catch (Exception ex)
-        {
-            _state.Emit(LogLevel.Error,
-                $"Could not start HTTP listener on port {Constants.Port}: {ex.Message}");
-            return;
+            // Fall back: localhost only (always works without elevation).
+            _listener.Prefixes.Clear();
+            _listener.Prefixes.Add($"http://localhost:{Constants.Port}/");
+
+            if (!TryStartListener())
+                return;   // Even localhost failed — port probably in use.
+
+            _state.Emit(LogLevel.Warn,
+                $"Listening on localhost:{Constants.Port} only " +
+                $"(LAN binding requires admin or a URL ACL — see README)");
         }
 
         _cts = new CancellationTokenSource();
@@ -71,6 +81,26 @@ public sealed class ListenerService : IDisposable
 
         _state.Emit(LogLevel.Success,
             $"Server started — saving files to {Constants.DownloadsFolder}");
+    }
+
+    /// <summary>
+    /// Calls <see cref="HttpListener.Start()"/> and returns <c>true</c> on success.
+    /// On failure the error is logged and <c>false</c> is returned; the listener is
+    /// left in a stopped state so prefixes can be changed and a retry attempted.
+    /// </summary>
+    private bool TryStartListener()
+    {
+        try
+        {
+            _listener.Start();
+            return true;
+        }
+        catch (Exception ex)
+        {
+            _state.Emit(LogLevel.Error,
+                $"Could not start HTTP listener on port {Constants.Port}: {ex.Message}");
+            return false;
+        }
     }
 
     /// <summary>Stops the HTTP listener and cancels the accept loop.</summary>

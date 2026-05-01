@@ -1,4 +1,5 @@
 using System;
+using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Media;
 using MUC = Microsoft.UI.Colors;
 
@@ -44,14 +45,42 @@ public sealed class LogEntry
         _                  => "INFO",
     };
 
-    /// <summary>Foreground brush applied to the label, colour-coded by log level.</summary>
-    public Brush LevelBrush => new SolidColorBrush(Level switch
+    /// <summary>
+    /// Foreground brush applied to the level label, colour-coded by log level.
+    /// Looks up the brush from <c>Application.Current.Resources</c> so it automatically
+    /// returns the Light or Dark variant that matches the current Windows theme.
+    /// Falls back to hardcoded colours if the resource dictionary is not yet loaded.
+    /// </summary>
+    public Brush LevelBrush
     {
-        LogLevel.File      => MUC.MediumPurple,
-        LogLevel.Clipboard => MUC.DodgerBlue,
-        LogLevel.Warn      => MUC.Goldenrod,
-        LogLevel.Error     => MUC.OrangeRed,
-        LogLevel.Success   => MUC.SeaGreen,
-        _                  => MUC.Gray,   // Info
-    });
+        get
+        {
+            var key = Level switch
+            {
+                LogLevel.File      => "LogFileBrush",
+                LogLevel.Clipboard => "LogClipboardBrush",
+                LogLevel.Warn      => "LogWarnBrush",
+                LogLevel.Error     => "LogErrorBrush",
+                LogLevel.Success   => "LogSuccessBrush",
+                _                  => "LogInfoBrush",
+            };
+
+            // TryGetValue on ResourceDictionary with ThemeDictionaries returns
+            // the variant for the currently active theme (Light or Dark).
+            if (Application.Current?.Resources.TryGetValue(key, out var brushObj) == true
+                && brushObj is Brush b)
+                return b;
+
+            // Fallback: hardcoded colours used before XAML resources are fully loaded.
+            return new SolidColorBrush(Level switch
+            {
+                LogLevel.File      => MUC.MediumPurple,
+                LogLevel.Clipboard => MUC.DodgerBlue,
+                LogLevel.Warn      => MUC.Goldenrod,
+                LogLevel.Error     => MUC.OrangeRed,
+                LogLevel.Success   => MUC.SeaGreen,
+                _                  => MUC.Gray,
+            });
+        }
+    }
 }

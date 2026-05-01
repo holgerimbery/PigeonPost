@@ -35,17 +35,30 @@
 
         <!-- ============ Address card ============ -->
         <Border Grid.Row="1" Style="{StaticResource CardStyle}">
-            <Grid>
-                <StackPanel Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+            <!--
+                Two-row layout prevents the "Listening on" and "Files saved to" lines
+                from overlapping when the window is resized narrower than ~500 px.
+            -->
+            <Grid RowSpacing="4">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                </Grid.RowDefinitions>
+
+                <!-- Row 0: active listen address -->
+                <StackPanel Grid.Row="0" Orientation="Horizontal" Spacing="8">
                     <TextBlock Text="Listening on" Opacity="0.6" VerticalAlignment="Center"/>
                     <TextBlock Text="{x:Bind ViewModel.ListenAddress, Mode=OneWay}"
                                FontFamily="Consolas" FontWeight="SemiBold"
                                Foreground="{ThemeResource AccentTextFillColorPrimaryBrush}"
                                VerticalAlignment="Center"/>
                 </StackPanel>
-                <TextBlock HorizontalAlignment="Right" VerticalAlignment="Center"
-                           Opacity="0.6" FontSize="12"
-                           Text="{x:Bind ViewModel.DownloadsLine, Mode=OneTime}"/>
+
+                <!-- Row 1: downloads folder path; truncated with tooltip for long paths -->
+                <TextBlock Grid.Row="1" Opacity="0.6" FontSize="12"
+                           Text="{x:Bind ViewModel.DownloadsLine, Mode=OneTime}"
+                           TextTrimming="CharacterEllipsis"
+                           ToolTipService.ToolTip="{x:Bind ViewModel.DownloadsLine, Mode=OneTime}"/>
             </Grid>
         </Border>
 

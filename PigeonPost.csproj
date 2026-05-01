@@ -17,6 +17,8 @@
     <LangVersion>latest</LangVersion>
     <SupportedOSPlatformVersion>10.0.17763.0</SupportedOSPlatformVersion>
     <NoWarn>$(NoWarn);CA1416</NoWarn>
+    <!-- Embeds the ICO into the EXE so Explorer and Alt+Tab show the pigeon icon. -->
+    <ApplicationIcon>Assets\PigeonPost.ico</ApplicationIcon>
   </PropertyGroup>
 
   <ItemGroup>
@@ -25,6 +27,13 @@
     <PackageReference Include="CommunityToolkit.Mvvm" Version="8.4.2" />
     <PackageReference Include="H.NotifyIcon.WinUI" Version="2.3.2" />
     <PackageReference Include="System.Drawing.Common" Version="9.0.1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- Copy the pigeon+envelope icon to the output directory so SetIcon() can find it at runtime. -->
+    <Content Include="Assets\PigeonPost.ico">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
   </ItemGroup>
 
 </Project>
