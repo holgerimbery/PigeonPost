@@ -50,6 +50,22 @@ dotnet run --project PigeonPost.csproj -r win-x64
 On first launch, Windows Defender Firewall may ask whether to allow incoming
 connections on port 2560. Tick **Private networks** and click **Allow access**.
 
+> **LAN access from other devices (iPhone, Android, …):**
+> Windows classifies newly joined Wi-Fi networks as *Public* by default and blocks
+> inbound connections even if you accepted the firewall prompt.  Two steps are needed:
+>
+> **Step 1 — Set the Wi-Fi network to Private**
+> `Settings → System → Network & Internet → Wi-Fi → <your network> → Network profile type → Private`
+>
+> **Step 2 — Add an inbound firewall rule for port 2560**
+> Run PowerShell **as Administrator** and paste:
+> ```powershell
+> New-NetFirewallRule -DisplayName "PigeonPost (Port 2560)" `
+>     -Direction Inbound -Protocol TCP -LocalPort 2560 `
+>     -Action Allow -Profile Private,Domain,Public
+> ```
+> Both steps are required.  The rule alone is not enough if the network profile is *Public*.
+
 ---
 
 ## Publish — portable single-file EXE
@@ -117,7 +133,7 @@ The action is selected by a single custom request header.
 
 | Header | Request body | Response body | Description |
 |---|---|---|---|
-| `clipboard: send`    | UTF-8 text | `Data copied to clipboard` | Writes the body to the PC clipboard |
+| `clipboard: send`    | UTF-8 text **or** JSON `{"text":"…"}` | `Data copied to clipboard` | Writes the body to the PC clipboard. Plain text and JSON object (key `text`) are both accepted — use JSON body type in iOS Shortcuts |
 | `clipboard: receive` | *(empty)*  | UTF-8 text | Returns the current PC clipboard content |
 | `clipboard: clear`   | *(empty)*  | `Clipboard cleared` | Empties the PC clipboard |
 
@@ -136,6 +152,23 @@ The action is selected by a single custom request header.
 | `405` | HTTP method other than POST was used |
 | `500` | Unexpected server-side error |
 | `503` | Server is currently paused |
+
+### iOS Shortcuts example (German: Kurzbefehle)
+
+Add a **„Inhalt der URL abrufen"** action and configure it as follows:
+
+| Field | Value |
+|---|---|
+| URL | `http://<your-pc-ip>:2560` |
+| Methode | **POST** |
+| Header — Schlüssel | `clipboard` |
+| Header — Wert | `send` |
+| Haupttext | **JSON** |
+| JSON key | `text` |
+| JSON value | Variable **„Zwischenablage"** (tap the `+` to insert) |
+
+> iOS Shortcuts only offers JSON / Form / File body types — plain text is not available.
+> PigeonPost accepts both plain text and `{"text":"…"}` JSON so both curl and Shortcuts work.
 
 ### curl examples
 
@@ -192,7 +225,8 @@ PigeonPost follows the Windows system colour mode automatically:
 |---|---|---|
 | **Address card shows `localhost`** | LAN binding failed — no admin rights and no URL ACL | See activity log for the warning. To bind to LAN: run as Administrator, or run `netsh http add urlacl url=http://YOUR.IP:2560/ user=Everyone` in an elevated prompt |
 | **`HTTP Error 183`** or **`Address already in use`** on startup | A previous PigeonPost process still holds port 2560 | Open Task Manager → end any stale `PigeonPost.exe`, then restart |
-| **Requests are not received** | Windows Defender Firewall is blocking port 2560 | Allow the app at the first-launch prompt, or add an inbound rule for TCP 2560 manually |
+| **Requests time out from phone / tablet** | Windows Firewall blocks the port, or the Wi-Fi is classified as *Public* | (1) Set the Wi-Fi network profile to **Private** (`Settings → Network & Internet → Wi-Fi → <network> → Private`). (2) Add an inbound rule: `New-NetFirewallRule -DisplayName "PigeonPost (Port 2560)" -Direction Inbound -Protocol TCP -LocalPort 2560 -Action Allow -Profile Private,Domain,Public` in an elevated PowerShell |
+| **Requests are not received (localhost only)** | Windows Defender Firewall is blocking port 2560 | Allow the app at the first-launch prompt, or add an inbound rule for TCP 2560 as shown above |
 | **Window is transparent / no Mica effect** | Running on Windows 10 | Expected — Mica is Windows 11 only; the app functions normally otherwise |
 | **`The Windows App Runtime is not installed`** when running the published exe | Published without `--self-contained` flags | Re-publish with the full `dotnet publish` command shown above |
 | **Tray icon does not appear** | Windows hides overflow icons | Right-click taskbar → *Taskbar settings* → *Other system tray icons* → enable **PigeonPost** |
