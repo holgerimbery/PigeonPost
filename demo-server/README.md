@@ -31,7 +31,7 @@ Generate a strong random token and set it as a Cloudflare secret (it is **never 
 
 ```bash
 wrangler secret put DEMO_TOKEN
-# Paste your token when prompted, e.g.: 8cb803fe1dbbe65426fec19943792047ac108b7023078bf5
+# Paste your privately generated token when prompted
 ```
 
 Share this token privately with Apple review testers — anyone without it gets a 401.
