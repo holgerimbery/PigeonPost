@@ -19,10 +19,11 @@ or any other platform.
 **iPhone and iPad users** can get started right away using Apple Shortcuts —
 step-by-step setup instructions are in the [iOS Shortcuts wiki page](https://github.com/holgerimbery/PigeonPost/wiki/iOS-Shortcuts).
 
-> **Coming soon — native iOS app:**  
-> A dedicated iOS companion app is in development. It will provide a full GUI for
+> **Native iOS companion app — PigeonPostCompanion:**  
+> A dedicated iOS companion app is available. It provides a full GUI for
 > all PigeonPost functions and includes a **Share Sheet extension**, so you can send
-> files and text directly from any app on your iPhone or iPad.
+> files and text directly from any app on your iPhone or iPad.  
+> The app discovers your PC automatically via **Bonjour/mDNS** — no manual IP entry needed.
 
 <p align="center">
   <img src="Assets/PigeonPostGUI.jpg" alt="PigeonPostGui" width="600"/>
@@ -47,6 +48,7 @@ step-by-step setup instructions are in the [iOS Shortcuts wiki page](https://git
 - **Tray context menu**: Show window · Pause / Resume · Quit
 - **Start with Windows** — optional autostart toggle; app launches hidden to tray
 - **Smart network monitoring** — detects WiFi ↔ LAN switches, IP changes, and offline events; restarts the listener automatically on relevant changes
+- **mDNS / Bonjour auto-discovery** — advertises the server as `_pigeonpost._tcp` on the local network so the iOS companion app can find your PC automatically without typing an IP address
 - **Auto-update** — checks GitHub Releases on startup and every 24 hours; shows an in-app banner when a new version is available; one click installs and restarts
 
 ---
@@ -54,40 +56,8 @@ step-by-step setup instructions are in the [iOS Shortcuts wiki page](https://git
 ## Authentication
 
 PigeonPost includes optional **bearer token authentication** — disabled by default.
-
-### Enable it
-
-1. Open **Settings** (⚙️) → **Security**
-2. Flip **"Require bearer token authentication"** on
-3. Copy the token with the 📋 button
-4. Click **Save**
-
-Use **Regenerate** to issue a new token at any time (e.g. after sharing the old one with a device you no longer own). The toggle and regeneration take effect immediately without restarting the server.
-
-### Send the token from a client
-
-Add an `Authorization` header to every request:
-
-```
-Authorization: Bearer <your-token>
-```
-
-**curl example:**
-
-```bash
-curl -s -X POST http://192.168.1.x:2560/ \
-     -H "Authorization: Bearer <your-token>" \
-     -H "clipboard: send" \
-     -d "Hello from curl"
-```
-
-### Status codes
-
-| Code | Meaning |
-|------|---------|
-| `200` | Request accepted |
-| `401` | Missing or invalid bearer token (auth is enabled) |
-| `503` | Server is paused |
+Full details (setup, client usage, curl examples, status codes) are in the
+[HTTP API Reference → Authentication](https://github.com/holgerimbery/PigeonPost/wiki/HTTP-API-Reference#authentication) wiki page.
 
 ---
 
@@ -114,9 +84,9 @@ Full documentation is in the [project wiki](https://github.com/holgerimbery/Pige
 |---|---|
 | [HTTP API Reference](https://github.com/holgerimbery/PigeonPost/wiki/HTTP-API-Reference) | Clipboard operations, file transfer, bearer authentication, status codes, and curl examples |
 | [iOS Shortcuts](https://github.com/holgerimbery/PigeonPost/wiki/iOS-Shortcuts) | Step-by-step Shortcuts setup for iPhone / iPad (English + German) |
-| [Remote Access](https://github.com/holgerimbery/PigeonPost/wiki/Remote-Access) | Reach PigeonPost from outside your home network using Tailscale |
+| [Remote Access](https://github.com/holgerimbery/PigeonPost/wiki/Remote-Access) | Tailscale setup (Windows 11 + iOS), creating a tailnet, enabling HTTPS |
 | [Build from Source](https://github.com/holgerimbery/PigeonPost/wiki/Build-from-Source) | Prerequisites, build & run, Velopack publish, project layout |
-| [How It Works](https://github.com/holgerimbery/PigeonPost/wiki/How-It-Works) | HTTP listener binding, bearer auth, network change handling, dark / light mode |
+| [How It Works](https://github.com/holgerimbery/PigeonPost/wiki/How-It-Works) | HTTP listener binding, bearer auth, mDNS, network change handling, dark / light mode |
 | [Troubleshooting](https://github.com/holgerimbery/PigeonPost/wiki/Troubleshooting) | Common issues, fixes, security notes, and 401 errors |
 
 ---
