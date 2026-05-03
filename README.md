@@ -4,6 +4,13 @@
   <img src="Assets/banner.png" alt="PigeonPost" width="220"/>
 </p>
 
+<p align="center">
+  <a href="https://holgerimbery.github.io/PigeonPost/">🌐 Website</a> ·
+  <a href="https://holgerimbery.github.io/PigeonPost/privacy.html">🔒 Privacy Policy</a> ·
+  <a href="https://github.com/holgerimbery/PigeonPost/releases/latest">⬇️ Download</a> ·
+  <a href="https://github.com/holgerimbery/PigeonPost/issues">🐛 Support</a>
+</p>
+
 PigeonPost is a lightweight Windows 11 tray application that exposes a simple
 local HTTP API for transferring files and clipboard content from any network-connected
 device to your Windows PC.
