@@ -25,7 +25,18 @@ npm install -g wrangler
 wrangler login
 ```
 
-### 2. Create the KV namespace (enables live clipboard state)
+### 2. Set the bearer token secret
+
+Generate a strong random token and set it as a Cloudflare secret (it is **never stored in the repo**):
+
+```bash
+wrangler secret put DEMO_TOKEN
+# Paste your token when prompted, e.g.: 8cb803fe1dbbe65426fec19943792047ac108b7023078bf5
+```
+
+Share this token privately with Apple review testers — anyone without it gets a 401.
+
+### 3. Create the KV namespace (enables live clipboard state)
 
 ```bash
 cd demo-server
@@ -34,7 +45,7 @@ wrangler kv namespace create CLIPBOARD
 
 Copy the `id` from the output and uncomment + fill in the `[[kv_namespaces]]` block in `wrangler.toml`.
 
-### 3. Deploy
+### 4. Deploy
 
 ```bash
 wrangler deploy
@@ -52,6 +63,6 @@ In the PigeonPost Companion iOS app:
 - **Host**: `pigeonpost-demo.<your-subdomain>.workers.dev`
 - **Port**: `443` (HTTPS) — or leave blank if the app auto-detects
 - **Use HTTPS**: on
-- **Bearer Token**: `pigeonpost-demo` (or leave blank)
+- **Bearer Token**: the secret token you set with `wrangler secret put DEMO_TOKEN`
 
 The worker is available 24/7 on Cloudflare's free tier with no sleep/cold-start.
