@@ -37,6 +37,9 @@ public partial class App : Application
     /// <summary>The active HTTP listener; exposed so it can be stopped on shutdown if needed.</summary>
     public static ListenerService? Listener { get; private set; }
 
+    /// <summary>Advertises the server via Bonjour/mDNS for iOS auto-discovery.</summary>
+    public static MdnsService? Mdns { get; private set; }
+
     /// <summary>Monitors network address changes and triggers listener restarts.</summary>
     public static IpMonitorService? IpMonitor { get; private set; }
 
@@ -96,6 +99,10 @@ public partial class App : Application
         // Start the HTTP listener so remote clients can send files and clipboard data.
         Listener = new ListenerService(State, _window.DispatcherQueue);
         Listener.Start();
+
+        // Advertise the server via Bonjour/mDNS so PigeonPostCompanion can auto-discover it.
+        Mdns = new MdnsService(State);
+        Mdns.Start();
 
         // Start the IP monitor; restart the listener and notify the user on change.
         IpMonitor = new IpMonitorService();
@@ -165,6 +172,7 @@ public partial class App : Application
             // ── Came back online ─────────────────────────────────────────────
             case NetworkChangeKind.CameOnline:
                 Listener?.Restart();
+                Mdns?.Restart();
                 ViewModel?.UpdateListenAddress(e.NewIp);
                 State.Emit(LogLevel.Warn,
                     $"Network restored ({KindLabel(e.NewKind)} {e.NewIp}) · Server restarted.");
@@ -177,6 +185,7 @@ public partial class App : Application
             // ── WiFi ↔ Ethernet switch ───────────────────────────────────────
             case NetworkChangeKind.InterfaceSwitched:
                 Listener?.Restart();
+                Mdns?.Restart();
                 ViewModel?.UpdateListenAddress(e.NewIp);
                 State.Emit(LogLevel.Warn,
                     $"Interface switched: {KindLabel(e.PreviousKind)} ({e.PreviousIp}) → " +
@@ -190,6 +199,7 @@ public partial class App : Application
             // ── IP address changed (same interface) ──────────────────────────
             case NetworkChangeKind.IpChanged:
                 Listener?.Restart();
+                Mdns?.Restart();
                 ViewModel?.UpdateListenAddress(e.NewIp);
                 State.Emit(LogLevel.Warn,
                     $"{KindLabel(e.NewKind)} IP changed: {e.PreviousIp} → {e.NewIp} · " +
