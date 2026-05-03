@@ -1,0 +1,14 @@
+name = "pigeonpost-demo"
+main = "src/index.js"
+compatibility_date = "2024-01-01"
+
+# KV namespace — stores clipboard content during testing.
+# After deploying, create the KV namespace and paste its ID below:
+#
+#   wrangler kv namespace create CLIPBOARD
+#
+# Then uncomment and fill in the id:
+#
+# [[kv_namespaces]]
+# binding = "CLIPBOARD"
+# id = "PASTE_YOUR_KV_NAMESPACE_ID_HERE"
