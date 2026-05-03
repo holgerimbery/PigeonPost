@@ -1,0 +1,425 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>PigeonPost — Live Clipboard Test</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --c-bg:       #f8fafc;
+      --c-surface:  #ffffff;
+      --c-border:   #e2e8f0;
+      --c-text:     #1e293b;
+      --c-muted:    #64748b;
+      --c-accent:   #2563eb;
+      --c-accent-h: #1d4ed8;
+      --c-green:    #16a34a;
+      --c-red:      #dc2626;
+      --c-amber:    #d97706;
+      --font: 'Inter', system-ui, -apple-system, sans-serif;
+      --radius: 12px;
+    }
+    html { scroll-behavior: smooth; }
+    body {
+      font-family: var(--font);
+      background: var(--c-bg);
+      color: var(--c-text);
+      line-height: 1.6;
+      -webkit-font-smoothing: antialiased;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+    a { color: var(--c-accent); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+
+    /* ── Top bar ── */
+    .topbar {
+      background: #0f172a;
+      padding: .75rem 2rem;
+      display: flex;
+      align-items: center;
+      gap: .6rem;
+    }
+    .topbar img { height: 24px; width: auto; border-radius: 5px; }
+    .topbar-name { color: #fff; font-size: .95rem; font-weight: 700; letter-spacing: -.01em; }
+    .topbar-back {
+      margin-left: auto;
+      color: rgba(255,255,255,.55);
+      font-size: .8rem;
+      display: flex; align-items: center; gap: .3rem;
+    }
+    .topbar-back:hover { color: #fff; text-decoration: none; }
+
+    /* ── Requirements banner ── */
+    .req-banner {
+      background: #fffbeb;
+      border-bottom: 1px solid #fcd34d;
+      padding: .85rem 2rem;
+    }
+    .req-banner-inner {
+      max-width: 700px;
+      margin: 0 auto;
+      display: flex;
+      gap: .75rem;
+      align-items: flex-start;
+    }
+    .req-icon { font-size: 1.1rem; flex-shrink: 0; margin-top: .05rem; }
+    .req-banner p { font-size: .82rem; color: #78350f; line-height: 1.5; }
+    .req-banner strong { color: #92400e; }
+
+    /* ── Main content ── */
+    .main {
+      flex: 1;
+      display: flex;
+      align-items: flex-start;
+      justify-content: center;
+      padding: 3rem 1.5rem 4rem;
+    }
+    .card {
+      background: var(--c-surface);
+      border: 1px solid var(--c-border);
+      border-radius: 20px;
+      padding: 2.5rem;
+      width: 100%;
+      max-width: 560px;
+      box-shadow: 0 4px 24px rgba(0,0,0,.07);
+    }
+    .card-header { margin-bottom: 2rem; }
+    .card-header h1 {
+      font-size: 1.5rem;
+      font-weight: 800;
+      letter-spacing: -.03em;
+      color: var(--c-text);
+      margin-bottom: .35rem;
+    }
+    .card-header p { font-size: .875rem; color: var(--c-muted); }
+
+    /* ── Form ── */
+    .form-group { margin-bottom: 1.25rem; }
+    label {
+      display: block;
+      font-size: .8rem;
+      font-weight: 600;
+      color: var(--c-text);
+      margin-bottom: .4rem;
+      letter-spacing: .02em;
+      text-transform: uppercase;
+    }
+    .input-row { display: flex; gap: .5rem; }
+    input[type="text"], input[type="number"], input[type="password"] {
+      width: 100%;
+      padding: .65rem .9rem;
+      border: 1.5px solid var(--c-border);
+      border-radius: var(--radius);
+      font-family: var(--font);
+      font-size: .9rem;
+      color: var(--c-text);
+      background: var(--c-bg);
+      transition: border-color .15s;
+      outline: none;
+    }
+    input:focus { border-color: var(--c-accent); background: #fff; }
+    input.input-port { width: 90px; flex-shrink: 0; }
+    .hint { font-size: .75rem; color: var(--c-muted); margin-top: .35rem; }
+
+    .toggle-row {
+      display: flex;
+      align-items: center;
+      gap: .6rem;
+      margin-bottom: 1.25rem;
+      font-size: .85rem;
+      color: var(--c-muted);
+    }
+    /* toggle switch */
+    .switch { position: relative; display: inline-block; width: 36px; height: 20px; flex-shrink: 0; }
+    .switch input { opacity: 0; width: 0; height: 0; }
+    .slider {
+      position: absolute; inset: 0;
+      background: var(--c-border);
+      border-radius: 99px;
+      cursor: pointer;
+      transition: background .2s;
+    }
+    .slider::before {
+      content: '';
+      position: absolute;
+      height: 14px; width: 14px;
+      left: 3px; top: 3px;
+      background: #fff;
+      border-radius: 50%;
+      transition: transform .2s;
+    }
+    .switch input:checked + .slider { background: var(--c-accent); }
+    .switch input:checked + .slider::before { transform: translateX(16px); }
+
+    .btn-get {
+      width: 100%;
+      padding: .85rem;
+      background: var(--c-accent);
+      color: #fff;
+      border: none;
+      border-radius: var(--radius);
+      font-family: var(--font);
+      font-size: 1rem;
+      font-weight: 700;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: .5rem;
+      transition: background .15s, transform .1s;
+      margin-top: 1.75rem;
+    }
+    .btn-get:hover:not(:disabled) { background: var(--c-accent-h); transform: translateY(-1px); }
+    .btn-get:disabled { opacity: .6; cursor: default; }
+
+    /* ── Result ── */
+    .result {
+      margin-top: 1.75rem;
+      border-radius: var(--radius);
+      overflow: hidden;
+      border: 1.5px solid var(--c-border);
+      display: none;
+    }
+    .result.visible { display: block; }
+    .result-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: .6rem .9rem;
+      font-size: .75rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: .06em;
+    }
+    .result-header.ok { background: #f0fdf4; color: var(--c-green); border-bottom: 1px solid #bbf7d0; }
+    .result-header.err { background: #fef2f2; color: var(--c-red); border-bottom: 1px solid #fecaca; }
+    .result-header.loading { background: #eff6ff; color: var(--c-accent); border-bottom: 1px solid #bfdbfe; }
+    .copy-btn {
+      background: none; border: none; cursor: pointer;
+      color: inherit; font-size: .75rem; font-weight: 600;
+      display: flex; align-items: center; gap: .25rem;
+      padding: .2rem .5rem; border-radius: 6px;
+      transition: background .15s;
+    }
+    .copy-btn:hover { background: rgba(0,0,0,.06); }
+    .result-body {
+      padding: 1rem;
+      background: var(--c-surface);
+      font-size: .9rem;
+      color: var(--c-text);
+      white-space: pre-wrap;
+      word-break: break-word;
+      max-height: 260px;
+      overflow-y: auto;
+      font-family: 'SFMono-Regular', 'Consolas', 'Liberation Mono', monospace;
+    }
+    .result-body.empty { color: var(--c-muted); font-style: italic; font-family: var(--font); }
+
+    /* ── Spinner ── */
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .spinner {
+      width: 18px; height: 18px;
+      border: 2px solid rgba(255,255,255,.35);
+      border-top-color: #fff;
+      border-radius: 50%;
+      animation: spin .6s linear infinite;
+    }
+
+    /* ── Footer ── */
+    footer {
+      text-align: center;
+      padding: 1.5rem;
+      font-size: .78rem;
+      color: var(--c-muted);
+      border-top: 1px solid var(--c-border);
+    }
+    footer a { color: var(--c-muted); }
+    footer a:hover { color: var(--c-accent); }
+  </style>
+</head>
+<body>
+
+<!-- Top bar -->
+<div class="topbar">
+  <img src="banner_cropped.png" alt="PigeonPost logo" />
+  <span class="topbar-name">PigeonPost</span>
+  <a href="index.html" class="topbar-back">
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true">
+      <path d="M19 12H5M12 5l-7 7 7 7"/>
+    </svg>
+    Back to site
+  </a>
+</div>
+
+  <!-- Requirements notice -->
+<div class="req-banner">
+  <div class="req-banner-inner">
+    <span class="req-icon">💡</span>
+    <p>
+      <strong>How to use:</strong>
+      Save this file to your PC, then open it in <strong>Chrome or Edge</strong>
+      on the <strong>same machine</strong> where PigeonPost is running.
+      Type <code>localhost</code> as the host and click <em>Get Clipboard from PC</em>.
+      Works offline — no internet connection needed.
+    </p>
+  </div>
+</div>
+
+<!-- Main card -->
+<div class="main">
+  <div class="card">
+    <div class="card-header">
+      <h1>Clipboard Test</h1>
+      <p>Fetch your Windows PC clipboard content directly in the browser.</p>
+    </div>
+
+    <div class="form-group">
+      <label for="host">PC Host / IP Address</label>
+      <div class="input-row">
+        <input type="text" id="host" placeholder="192.168.1.100 or hostname.ts.net" autocomplete="off" autocorrect="off" spellcheck="false" />
+        <input type="number" id="port" class="input-port" value="2560" min="1" max="65535" />
+      </div>
+      <p class="hint">Enter your PC's local IP or Tailscale hostname, and the PigeonPost port (default 2560).</p>
+    </div>
+
+    <div class="toggle-row">
+      <label class="switch" title="Use HTTPS">
+        <input type="checkbox" id="useHttps" />
+        <span class="slider"></span>
+      </label>
+      <span>Use HTTPS (required when opening this page from the web)</span>
+    </div>
+
+    <div class="form-group">
+      <label for="token">Bearer Token <span style="font-weight:400;text-transform:none;color:var(--c-muted)">(optional)</span></label>
+      <input type="password" id="token" placeholder="Leave blank if no auth token is set" autocomplete="off" />
+    </div>
+
+    <button class="btn-get" id="fetchBtn" onclick="fetchClipboard()">
+      <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true">
+        <rect x="9" y="2" width="6" height="4" rx="1"/>
+        <path d="M8 4H6a2 2 0 00-2 2v14a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2h-2"/>
+        <path d="M12 11v6M9 14l3 3 3-3"/>
+      </svg>
+      Get Clipboard from PC
+    </button>
+
+    <div class="result" id="result">
+      <div class="result-header" id="resultHeader">
+        <span id="resultLabel"></span>
+        <button class="copy-btn" id="copyBtn" onclick="copyResult()" style="display:none">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>
+          Copy
+        </button>
+      </div>
+      <div class="result-body" id="resultBody"></div>
+    </div>
+  </div>
+</div>
+
+<footer>
+  <a href="index.html">PigeonPost</a> &nbsp;·&nbsp;
+  <a href="https://github.com/holgerimbery/PigeonPost" target="_blank" rel="noopener">GitHub</a> &nbsp;·&nbsp;
+  <a href="privacy.html">Privacy Policy</a>
+</footer>
+
+<script>
+    // Restore last-used values — default host to localhost
+  const $ = id => document.getElementById(id);
+  $('host').value = localStorage.getItem('pp_host') || 'localhost';
+  $('port').value = localStorage.getItem('pp_port') || '2560';
+  // Hide HTTPS toggle — not needed for local file usage
+  document.querySelector('.toggle-row').style.display = 'none';
+
+  async function fetchClipboard() {
+    const host  = $('host').value.trim();
+    const port  = $('port').value.trim();
+    const token = $('token').value.trim();
+    const https = $('useHttps').checked;
+
+    if (!host) { $('host').focus(); return; }
+
+    // Persist settings
+    localStorage.setItem('pp_host',  host);
+    localStorage.setItem('pp_port',  port);
+    localStorage.setItem('pp_https', https ? '1' : '0');
+
+    const btn = $('fetchBtn');
+    btn.disabled = true;
+    btn.innerHTML = '<div class="spinner"></div> Fetching…';
+
+    showResult('loading', '⏳ Connecting…', '', false);
+
+    const scheme = https ? 'https' : 'http';
+    const url = `${scheme}://${host}:${port}/`;
+    const headers = { 'clipboard': 'receive' };
+    if (token) headers['Authorization'] = `Bearer ${token}`;
+
+    try {
+      const res = await fetch(url, { method: 'GET', headers, signal: AbortSignal.timeout(8000) });
+      const text = await res.text();
+
+      if (res.ok) {
+        if (!text || text.trim() === '') {
+          showResult('ok', '✓ Connected — clipboard is empty', '(Clipboard is empty on the PC)', false, true);
+        } else {
+          showResult('ok', `✓ Clipboard received (${text.length} chars)`, text, true);
+        }
+      } else if (res.status === 401) {
+        showResult('err', '✗ Unauthorised (401)', 'The PC has a bearer token set. Enter it in the Bearer Token field above.', false);
+      } else {
+        showResult('err', `✗ Server error (${res.status})`, text || 'No details returned.', false);
+      }
+    } catch (e) {
+      let msg = e.message || String(e);
+      if (msg.includes('Failed to fetch') || msg.includes('NetworkError') || msg.includes('Load failed')) {
+        msg = `Could not reach ${url}\n\n` +
+              `• Make sure PigeonPost is running on the PC.\n` +
+              `• Confirm the port matches (default 2560).\n` +
+              `• Open this file in Chrome or Edge on the same PC as PigeonPost.\n` +
+              `• Firefox and Safari block local HTTP requests from file:// — use Chrome/Edge.`;
+      } else if (msg.includes('timeout') || msg.includes('AbortError')) {
+        msg = 'Request timed out after 8 seconds. Is the PC reachable on this network?';
+      }
+      showResult('err', '✗ Connection failed', msg, false);
+    } finally {
+      btn.disabled = false;
+      btn.innerHTML = `<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="9" y="2" width="6" height="4" rx="1"/><path d="M8 4H6a2 2 0 00-2 2v14a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2h-2"/><path d="M12 11v6M9 14l3 3 3-3"/></svg> Get Clipboard from PC`;
+    }
+  }
+
+  function showResult(type, label, body, showCopy, emptyStyle) {
+    const r = $('result');
+    const rh = $('resultHeader');
+    const rb = $('resultBody');
+    const cb = $('copyBtn');
+
+    rh.className = 'result-header ' + type;
+    $('resultLabel').textContent = label;
+    rb.textContent = body;
+    rb.className = 'result-body' + (emptyStyle ? ' empty' : '');
+    cb.style.display = showCopy ? '' : 'none';
+    r.classList.add('visible');
+  }
+
+  function copyResult() {
+    const text = $('resultBody').textContent;
+    navigator.clipboard.writeText(text).then(() => {
+      const btn = $('copyBtn');
+      btn.textContent = '✓ Copied!';
+      setTimeout(() => { btn.innerHTML = `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg> Copy`; }, 2000);
+    });
+  }
+
+  // Allow Enter key on host/port/token fields
+  ['host','port','token'].forEach(id => $('id' === 'token' ? 'token' : id)
+    .addEventListener('keydown', e => { if (e.key === 'Enter') fetchClipboard(); }));
+</script>
+</body>
+</html>
