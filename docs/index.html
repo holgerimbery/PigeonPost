@@ -1,0 +1,736 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>PigeonPost — Clipboard &amp; File Transfer for Windows and iOS</title>
+  <meta name="description" content="PigeonPost seamlessly syncs clipboard content and transfers files between your Windows PC and iPhone. No cloud, no account — just your local network." />
+  <meta property="og:title" content="PigeonPost — Clipboard &amp; File Transfer for Windows and iOS" />
+  <meta property="og:description" content="Effortlessly sync your clipboard and transfer files between iPhone and Windows. Free, open-source, and privacy-first." />
+  <meta property="og:type" content="website" />
+  <meta property="og:url" content="https://holgerimbery.github.io/PigeonPost/" />
+  <meta name="twitter:card" content="summary_large_image" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
+  <style>
+    /* ── Reset & Custom Properties ─────────────────────────────────── */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --c-bg:        #f8fafc;
+      --c-surface:   #ffffff;
+      --c-border:    #e2e8f0;
+      --c-text:      #1e293b;
+      --c-muted:     #64748b;
+      --c-accent:    #2563eb;
+      --c-accent-h:  #1d4ed8;
+      --c-hero-from: #0f172a;
+      --c-hero-to:   #1e3a5f;
+      --c-green:     #16a34a;
+      --radius:      12px;
+      --shadow-sm:   0 1px 3px rgba(0,0,0,.08), 0 1px 2px rgba(0,0,0,.06);
+      --shadow-md:   0 4px 16px rgba(0,0,0,.08), 0 2px 6px rgba(0,0,0,.06);
+      --shadow-lg:   0 20px 40px rgba(0,0,0,.10), 0 8px 16px rgba(0,0,0,.06);
+      --font: 'Inter', system-ui, -apple-system, sans-serif;
+      --nav-h: 64px;
+    }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      font-family: var(--font);
+      background: var(--c-bg);
+      color: var(--c-text);
+      line-height: 1.6;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    a { color: inherit; text-decoration: none; }
+    img { max-width: 100%; height: auto; display: block; }
+
+    /* ── Nav ───────────────────────────────────────────────────────── */
+    .nav {
+      position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+      height: var(--nav-h);
+      background: rgba(15, 23, 42, 0.92);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border-bottom: 1px solid rgba(255,255,255,.08);
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 0 clamp(1.5rem, 5vw, 3rem);
+    }
+    .nav-logo {
+      display: flex; align-items: center; gap: .6rem;
+      font-size: 1.125rem; font-weight: 700; color: #fff;
+      letter-spacing: -.02em;
+    }
+    .nav-logo span.icon { font-size: 1.4rem; }
+    .nav-links {
+      display: flex; align-items: center; gap: 2rem; list-style: none;
+    }
+    .nav-links a {
+      color: rgba(255,255,255,.7); font-size: .9rem; font-weight: 500;
+      transition: color .15s;
+    }
+    .nav-links a:hover { color: #fff; }
+    .nav-gh {
+      display: flex; align-items: center; gap: .4rem;
+      padding: .45rem 1rem;
+      border-radius: 8px; border: 1px solid rgba(255,255,255,.18);
+      color: rgba(255,255,255,.85) !important;
+      font-size: .85rem !important; font-weight: 500 !important;
+      transition: background .15s, color .15s !important;
+    }
+    .nav-gh:hover { background: rgba(255,255,255,.08); color: #fff !important; }
+    .nav-hamburger { display: none; background: none; border: none; cursor: pointer; padding: .25rem; }
+    .nav-hamburger span { display: block; width: 22px; height: 2px; background: rgba(255,255,255,.8); margin: 4px 0; border-radius: 2px; transition: .2s; }
+
+    /* ── Hero ──────────────────────────────────────────────────────── */
+    .hero {
+      min-height: 100vh;
+      background: linear-gradient(145deg, var(--c-hero-from) 0%, var(--c-hero-to) 55%, #0f2a4a 100%);
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      text-align: center; padding: calc(var(--nav-h) + 4rem) clamp(1.5rem, 6vw, 4rem) 6rem;
+      position: relative; overflow: hidden;
+    }
+    .hero::before {
+      content: '';
+      position: absolute; inset: 0;
+      background-image: radial-gradient(circle, rgba(59,130,246,.12) 1px, transparent 1px);
+      background-size: 28px 28px;
+      pointer-events: none;
+    }
+    .hero-badge {
+      display: inline-flex; align-items: center; gap: .5rem;
+      padding: .35rem .9rem; border-radius: 99px;
+      background: rgba(37,99,235,.2); border: 1px solid rgba(37,99,235,.4);
+      color: #93c5fd; font-size: .8rem; font-weight: 500; letter-spacing: .02em;
+      margin-bottom: 2rem; position: relative;
+    }
+    .hero-badge-dot { width: 6px; height: 6px; border-radius: 50%; background: #3b82f6; }
+    .hero-icon { font-size: clamp(3.5rem, 8vw, 5.5rem); margin-bottom: 1.5rem; filter: drop-shadow(0 0 40px rgba(59,130,246,.4)); }
+    .hero h1 {
+      font-size: clamp(2.4rem, 6vw, 4rem); font-weight: 800; color: #fff;
+      letter-spacing: -.03em; line-height: 1.1; margin-bottom: 1.25rem;
+      position: relative;
+    }
+    .hero h1 span { color: #60a5fa; }
+    .hero p {
+      max-width: 560px; font-size: clamp(1rem, 2.5vw, 1.2rem);
+      color: rgba(255,255,255,.65); margin-bottom: 2.5rem; line-height: 1.7;
+    }
+    .hero-ctas { display: flex; gap: 1rem; flex-wrap: wrap; justify-content: center; }
+    .btn {
+      display: inline-flex; align-items: center; gap: .5rem;
+      padding: .75rem 1.6rem; border-radius: 10px;
+      font-size: .95rem; font-weight: 600; transition: all .15s; cursor: pointer;
+      white-space: nowrap;
+    }
+    .btn-primary {
+      background: var(--c-accent); color: #fff;
+      box-shadow: 0 0 0 0 rgba(37,99,235,0);
+    }
+    .btn-primary:hover { background: var(--c-accent-h); transform: translateY(-1px); box-shadow: 0 6px 20px rgba(37,99,235,.4); }
+    .btn-secondary {
+      background: rgba(255,255,255,.08); color: rgba(255,255,255,.9);
+      border: 1px solid rgba(255,255,255,.18);
+    }
+    .btn-secondary:hover { background: rgba(255,255,255,.14); transform: translateY(-1px); }
+    .hero-note {
+      margin-top: 1.75rem; font-size: .8rem; color: rgba(255,255,255,.35);
+    }
+
+    /* ── Section wrapper ───────────────────────────────────────────── */
+    .section { padding: 6rem clamp(1.5rem, 6vw, 4rem); }
+    .section-alt { background: var(--c-bg); }
+    .section-white { background: var(--c-surface); }
+    .section-dark { background: var(--c-hero-from); }
+
+    .container { max-width: 1100px; margin: 0 auto; }
+    .section-label {
+      display: inline-flex; align-items: center; gap: .4rem;
+      font-size: .75rem; font-weight: 600; letter-spacing: .1em;
+      text-transform: uppercase; color: var(--c-accent);
+      margin-bottom: .75rem;
+    }
+    .section-title {
+      font-size: clamp(1.75rem, 4vw, 2.6rem); font-weight: 800;
+      letter-spacing: -.02em; color: var(--c-text); line-height: 1.15;
+      margin-bottom: 1rem;
+    }
+    .section-sub {
+      font-size: 1.05rem; color: var(--c-muted); max-width: 600px; line-height: 1.7;
+    }
+    .section-header { margin-bottom: 3.5rem; }
+
+    /* ── Features Grid ─────────────────────────────────────────────── */
+    .features-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+      gap: 1.25rem;
+    }
+    .feature-card {
+      background: var(--c-surface);
+      border: 1px solid var(--c-border);
+      border-radius: var(--radius);
+      padding: 1.75rem;
+      box-shadow: var(--shadow-sm);
+      transition: transform .2s, box-shadow .2s, border-color .2s;
+    }
+    .feature-card:hover {
+      transform: translateY(-3px);
+      box-shadow: var(--shadow-md);
+      border-color: rgba(37,99,235,.25);
+    }
+    .feature-icon {
+      width: 46px; height: 46px; border-radius: 10px;
+      background: linear-gradient(135deg, #eff6ff, #dbeafe);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 1.35rem; margin-bottom: 1.1rem;
+    }
+    .feature-card h3 {
+      font-size: 1.05rem; font-weight: 700; color: var(--c-text);
+      margin-bottom: .4rem; letter-spacing: -.01em;
+    }
+    .feature-card p { font-size: .9rem; color: var(--c-muted); line-height: 1.65; }
+
+    /* ── How it Works ──────────────────────────────────────────────── */
+    .steps {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+      gap: 2rem; position: relative;
+    }
+    .step { text-align: center; padding: 1.5rem; }
+    .step-number {
+      width: 52px; height: 52px; border-radius: 50%;
+      background: linear-gradient(135deg, var(--c-accent), #1d4ed8);
+      color: #fff; font-size: 1.2rem; font-weight: 800;
+      display: flex; align-items: center; justify-content: center;
+      margin: 0 auto 1.2rem;
+      box-shadow: 0 4px 14px rgba(37,99,235,.3);
+    }
+    .step h3 { font-size: 1.1rem; font-weight: 700; margin-bottom: .5rem; }
+    .step p { font-size: .9rem; color: var(--c-muted); line-height: 1.65; }
+
+    /* ── Platform cards ────────────────────────────────────────────── */
+    .platforms {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+      gap: 1.5rem;
+    }
+    .platform-card {
+      background: var(--c-surface);
+      border: 1px solid var(--c-border);
+      border-radius: var(--radius);
+      padding: 2.25rem;
+      box-shadow: var(--shadow-sm);
+    }
+    .platform-header {
+      display: flex; align-items: center; gap: 1rem; margin-bottom: 1.5rem;
+    }
+    .platform-icon-wrap {
+      width: 56px; height: 56px; border-radius: 14px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 1.8rem;
+    }
+    .platform-icon-win { background: linear-gradient(135deg, #dbeafe, #bfdbfe); }
+    .platform-icon-ios { background: linear-gradient(135deg, #dcfce7, #bbf7d0); }
+    .platform-name { font-size: 1.25rem; font-weight: 700; letter-spacing: -.01em; }
+    .platform-sub { font-size: .85rem; color: var(--c-muted); margin-top: .15rem; }
+    .platform-list { list-style: none; display: flex; flex-direction: column; gap: .6rem; margin-bottom: 1.75rem; }
+    .platform-list li {
+      display: flex; align-items: flex-start; gap: .6rem;
+      font-size: .9rem; color: var(--c-muted);
+    }
+    .platform-list li::before {
+      content: '✓'; color: var(--c-green); font-weight: 700; font-size: .85rem;
+      flex-shrink: 0; margin-top: .05rem;
+    }
+    .platform-cta .btn { width: 100%; justify-content: center; font-size: .9rem; }
+    .btn-win { background: var(--c-accent); color: #fff; }
+    .btn-win:hover { background: var(--c-accent-h); transform: translateY(-1px); box-shadow: 0 4px 14px rgba(37,99,235,.3); }
+    .btn-ios { background: #000; color: #fff; }
+    .btn-ios:hover { background: #1a1a1a; transform: translateY(-1px); box-shadow: 0 4px 14px rgba(0,0,0,.25); }
+    .btn-ios-coming {
+      background: #f1f5f9; color: var(--c-muted);
+      border: 1px solid var(--c-border); cursor: default;
+    }
+
+    /* ── Privacy summary card ──────────────────────────────────────── */
+    .privacy-card {
+      background: linear-gradient(135deg, #f0fdf4, #dcfce7);
+      border: 1px solid #bbf7d0;
+      border-radius: var(--radius);
+      padding: 2.5rem;
+    }
+    .privacy-points {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 1.25rem; margin: 1.75rem 0;
+    }
+    .privacy-point {
+      display: flex; align-items: flex-start; gap: .7rem;
+    }
+    .privacy-point-icon {
+      font-size: 1.3rem; flex-shrink: 0; margin-top: .05rem;
+    }
+    .privacy-point h4 { font-size: .9rem; font-weight: 600; margin-bottom: .2rem; }
+    .privacy-point p { font-size: .82rem; color: var(--c-muted); line-height: 1.55; }
+    .privacy-link {
+      display: inline-flex; align-items: center; gap: .35rem;
+      color: var(--c-accent); font-size: .9rem; font-weight: 500;
+      transition: gap .15s;
+    }
+    .privacy-link:hover { gap: .6rem; }
+
+    /* ── Support callout ───────────────────────────────────────────── */
+    .support-card {
+      background: var(--c-surface);
+      border: 1px solid var(--c-border);
+      border-radius: var(--radius);
+      padding: 2.5rem;
+      display: flex; align-items: center; justify-content: space-between;
+      gap: 2rem; flex-wrap: wrap;
+      box-shadow: var(--shadow-sm);
+    }
+    .support-card h3 { font-size: 1.3rem; font-weight: 700; margin-bottom: .4rem; }
+    .support-card p { color: var(--c-muted); font-size: .95rem; max-width: 480px; }
+    .btn-outline {
+      background: transparent; color: var(--c-accent);
+      border: 2px solid var(--c-accent);
+      padding: .7rem 1.5rem; white-space: nowrap;
+    }
+    .btn-outline:hover { background: var(--c-accent); color: #fff; transform: translateY(-1px); }
+
+    /* ── Footer ────────────────────────────────────────────────────── */
+    .footer {
+      background: var(--c-hero-from);
+      padding: 3.5rem clamp(1.5rem, 6vw, 4rem) 2.5rem;
+      border-top: 1px solid rgba(255,255,255,.06);
+    }
+    .footer-inner {
+      max-width: 1100px; margin: 0 auto;
+      display: flex; flex-direction: column; gap: 2.5rem;
+    }
+    .footer-top {
+      display: flex; align-items: flex-start; justify-content: space-between;
+      gap: 2rem; flex-wrap: wrap;
+    }
+    .footer-brand { max-width: 280px; }
+    .footer-logo {
+      display: flex; align-items: center; gap: .55rem;
+      font-size: 1.1rem; font-weight: 700; color: #fff; margin-bottom: .75rem;
+    }
+    .footer-brand p { font-size: .85rem; color: rgba(255,255,255,.4); line-height: 1.6; }
+    .footer-links-group { display: flex; gap: 3rem; flex-wrap: wrap; }
+    .footer-col h4 {
+      font-size: .75rem; font-weight: 600; letter-spacing: .08em;
+      text-transform: uppercase; color: rgba(255,255,255,.4);
+      margin-bottom: .85rem;
+    }
+    .footer-col ul { list-style: none; display: flex; flex-direction: column; gap: .55rem; }
+    .footer-col a {
+      font-size: .875rem; color: rgba(255,255,255,.55);
+      transition: color .15s;
+    }
+    .footer-col a:hover { color: #fff; }
+    .footer-bottom {
+      padding-top: 2rem; border-top: 1px solid rgba(255,255,255,.06);
+      display: flex; align-items: center; justify-content: space-between;
+      flex-wrap: wrap; gap: 1rem;
+    }
+    .footer-bottom p { font-size: .8rem; color: rgba(255,255,255,.3); }
+    .footer-bottom a { color: rgba(255,255,255,.45); transition: color .15s; }
+    .footer-bottom a:hover { color: rgba(255,255,255,.8); }
+    .mit-badge {
+      display: inline-flex; align-items: center; gap: .35rem;
+      padding: .25rem .65rem; border-radius: 6px;
+      background: rgba(255,255,255,.06); border: 1px solid rgba(255,255,255,.1);
+      font-size: .75rem; color: rgba(255,255,255,.4);
+    }
+
+    /* ── Responsive ────────────────────────────────────────────────── */
+    @media (max-width: 640px) {
+      .nav-links { display: none; }
+      .nav-links.open {
+        display: flex; flex-direction: column;
+        position: fixed; top: var(--nav-h); left: 0; right: 0;
+        background: rgba(15,23,42,.97); padding: 1.25rem 1.5rem;
+        gap: 1.1rem; border-bottom: 1px solid rgba(255,255,255,.08);
+      }
+      .nav-hamburger { display: block; }
+      .support-card { flex-direction: column; }
+      .support-card .btn { width: 100%; justify-content: center; }
+      .footer-top { flex-direction: column; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- ── Navigation ─────────────────────────────────────────────────── -->
+<nav class="nav" role="navigation" aria-label="Main navigation">
+  <a href="#" class="nav-logo">
+    <span class="icon">🕊️</span>
+    <span>PigeonPost</span>
+  </a>
+  <ul class="nav-links" id="navLinks">
+    <li><a href="#features">Features</a></li>
+    <li><a href="#how-it-works">How it works</a></li>
+    <li><a href="#privacy">Privacy</a></li>
+    <li>
+      <a href="https://github.com/holgerimbery/PigeonPost" target="_blank" rel="noopener" class="nav-gh">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+          <path d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.531 1.032 1.531 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z"/>
+        </svg>
+        GitHub
+      </a>
+    </li>
+  </ul>
+  <button class="nav-hamburger" id="hamburger" aria-label="Toggle menu" aria-expanded="false">
+    <span></span><span></span><span></span>
+  </button>
+</nav>
+
+<!-- ── Hero ───────────────────────────────────────────────────────── -->
+<section class="hero" aria-labelledby="hero-heading">
+  <div class="hero-badge">
+    <span class="hero-badge-dot"></span>
+    Free &amp; Open Source · MIT License
+  </div>
+  <div class="hero-icon" aria-hidden="true">🕊️</div>
+  <h1 id="hero-heading">
+    Clipboard &amp; Files,<br/>
+    <span>Windows to iPhone</span>
+  </h1>
+  <p>
+    PigeonPost is a lightweight Windows tray app that lets your iPhone instantly
+    sync clipboard content and transfer files — directly over your local network,
+    with no cloud service or account required.
+  </p>
+  <div class="hero-ctas">
+    <a href="https://github.com/holgerimbery/PigeonPost/releases/latest" class="btn btn-primary" target="_blank" rel="noopener">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true">
+        <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M7 10l5 5 5-5M12 15V3"/>
+      </svg>
+      Download for Windows
+    </a>
+    <a href="https://apps.apple.com/app/pigeonpostcompanion/id6743437905" class="btn btn-secondary" target="_blank" rel="noopener">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+        <path d="M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45 4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.8-.91.65.03 2.47.26 3.64 1.98l-.09.06c-.22.13-2.18 1.28-2.16 3.81.03 3.02 2.65 4.03 2.68 4.04l-.07.27zM13 3.5c.73-.83 1.94-1.46 2.94-1.5.13 1.17-.34 2.35-1.04 3.19-.69.85-1.83 1.51-2.95 1.42-.15-1.15.41-2.35 1.05-3.11z"/>
+      </svg>
+      Get on App Store
+    </a>
+  </div>
+  <p class="hero-note">Windows 11 · iOS 17+ · No cloud · No account</p>
+</section>
+
+<!-- ── Features ───────────────────────────────────────────────────── -->
+<section class="section section-white" id="features" aria-labelledby="features-heading">
+  <div class="container">
+    <div class="section-header">
+      <div class="section-label">
+        <svg width="12" height="12" viewBox="0 0 12 12" fill="currentColor" aria-hidden="true"><circle cx="6" cy="6" r="6"/></svg>
+        Features
+      </div>
+      <h2 class="section-title" id="features-heading">Everything you need,<br/>nothing you don't</h2>
+      <p class="section-sub">
+        A focused set of capabilities that work reliably, right on your local network —
+        no internet dependency for core functionality.
+      </p>
+    </div>
+    <div class="features-grid">
+      <div class="feature-card">
+        <div class="feature-icon" aria-hidden="true">📋</div>
+        <h3>Clipboard Sync</h3>
+        <p>Copy text on your iPhone and paste it on Windows — or the reverse. Instant, bidirectional, no intermediary service.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon" aria-hidden="true">📁</div>
+        <h3>File Transfer</h3>
+        <p>Send photos, videos, PDFs, and any other document straight to your Windows Downloads folder in one tap from your iPhone.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon" aria-hidden="true">🔍</div>
+        <h3>Auto-Discovery</h3>
+        <p>Bonjour/mDNS advertisement means PigeonPostCompanion finds your PC automatically on the local network — no IP address to type.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon" aria-hidden="true">🔒</div>
+        <h3>Bearer Token Auth</h3>
+        <p>Optionally protect every API call with a cryptographically random bearer token. Enable, disable, or regenerate it from the Settings dialog.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon" aria-hidden="true">🌐</div>
+        <h3>Remote Access</h3>
+        <p>Works seamlessly over Tailscale, giving you secure access from anywhere without opening firewall ports or configuring a VPN from scratch.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon" aria-hidden="true">📤</div>
+        <h3>Share Sheet Extension</h3>
+        <p>PigeonPostCompanion registers a Share Sheet extension — send files directly from Photos, Files, Safari, or any other iOS app.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon" aria-hidden="true">🖥️</div>
+        <h3>Unobtrusive Tray App</h3>
+        <p>PigeonPost lives quietly in the Windows system tray with a colour-coded status icon. Close the window and it keeps running in the background.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon" aria-hidden="true">🔄</div>
+        <h3>Auto-Update</h3>
+        <p>The Windows app checks for new releases at startup and every 24 hours. A one-click in-app banner downloads and installs updates instantly.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon" aria-hidden="true">🌙</div>
+        <h3>Dark &amp; Light Mode</h3>
+        <p>Full Windows 11 Mica Material theming with Light, Dark, and "Follow Windows" options. The iOS companion respects your device appearance setting.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ── How it Works ───────────────────────────────────────────────── -->
+<section class="section section-alt" id="how-it-works" aria-labelledby="hiw-heading">
+  <div class="container">
+    <div class="section-header" style="text-align:center;">
+      <div class="section-label" style="justify-content:center;">
+        <svg width="12" height="12" viewBox="0 0 12 12" fill="currentColor" aria-hidden="true"><circle cx="6" cy="6" r="6"/></svg>
+        Getting Started
+      </div>
+      <h2 class="section-title" id="hiw-heading">Up and running in three steps</h2>
+      <p class="section-sub" style="margin:0 auto;">
+        From download to your first file transfer in under five minutes.
+      </p>
+    </div>
+    <div class="steps">
+      <div class="step">
+        <div class="step-number" aria-hidden="true">1</div>
+        <h3>Install PigeonPost on Windows</h3>
+        <p>Download the installer from GitHub Releases and run it. The app starts immediately and registers itself in the system tray — no configuration wizard required.</p>
+      </div>
+      <div class="step">
+        <div class="step-number" aria-hidden="true">2</div>
+        <h3>Install the iOS Companion</h3>
+        <p>Download PigeonPostCompanion from the App Store onto your iPhone or iPad. Both devices must be on the same Wi-Fi network, or connected via Tailscale.</p>
+      </div>
+      <div class="step">
+        <div class="step-number" aria-hidden="true">3</div>
+        <h3>Tap and Transfer</h3>
+        <p>PigeonPostCompanion discovers your PC automatically via Bonjour. Tap it to connect, then start syncing clipboard content and sending files — instantly.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ── Platform Details ───────────────────────────────────────────── -->
+<section class="section section-white" id="download" aria-labelledby="platforms-heading">
+  <div class="container">
+    <div class="section-header">
+      <div class="section-label">
+        <svg width="12" height="12" viewBox="0 0 12 12" fill="currentColor" aria-hidden="true"><circle cx="6" cy="6" r="6"/></svg>
+        Download
+      </div>
+      <h2 class="section-title" id="platforms-heading">Available on Windows and iOS</h2>
+    </div>
+    <div class="platforms">
+      <!-- Windows -->
+      <div class="platform-card">
+        <div class="platform-header">
+          <div class="platform-icon-wrap platform-icon-win" aria-hidden="true">🖥️</div>
+          <div>
+            <div class="platform-name">PigeonPost</div>
+            <div class="platform-sub">Windows 11 Server App</div>
+          </div>
+        </div>
+        <ul class="platform-list" aria-label="Windows app features">
+          <li>Embedded HTTP server on port 2560</li>
+          <li>Intel/AMD 64-bit &amp; ARM 64-bit builds</li>
+          <li>Windows 11 Mica Material UI</li>
+          <li>Bonjour/mDNS advertisement</li>
+          <li>Start with Windows, minimize to tray</li>
+          <li>Bearer token authentication</li>
+          <li>Tailscale remote access support</li>
+          <li>In-app auto-update (Velopack)</li>
+        </ul>
+        <div class="platform-cta">
+          <a href="https://github.com/holgerimbery/PigeonPost/releases/latest" class="btn btn-win" target="_blank" rel="noopener">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true">
+              <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M7 10l5 5 5-5M12 15V3"/>
+            </svg>
+            Download for Windows
+          </a>
+        </div>
+      </div>
+
+      <!-- iOS -->
+      <div class="platform-card">
+        <div class="platform-header">
+          <div class="platform-icon-wrap platform-icon-ios" aria-hidden="true">📱</div>
+          <div>
+            <div class="platform-name">PigeonPostCompanion</div>
+            <div class="platform-sub">iPhone &amp; iPad App</div>
+          </div>
+        </div>
+        <ul class="platform-list" aria-label="iOS app features">
+          <li>Requires iOS 17 or later</li>
+          <li>Auto-discovery via Bonjour/mDNS</li>
+          <li>Send &amp; receive clipboard content</li>
+          <li>Transfer files to Windows PC</li>
+          <li>Share Sheet extension for any app</li>
+          <li>Bearer token authentication support</li>
+          <li>Settings synced via iCloud</li>
+          <li>Dark &amp; Light mode support</li>
+        </ul>
+        <div class="platform-cta">
+          <a href="https://apps.apple.com/app/pigeonpostcompanion/id6743437905" class="btn btn-ios" target="_blank" rel="noopener">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+              <path d="M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45 4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.8-.91.65.03 2.47.26 3.64 1.98l-.09.06c-.22.13-2.18 1.28-2.16 3.81.03 3.02 2.65 4.03 2.68 4.04l-.07.27zM13 3.5c.73-.83 1.94-1.46 2.94-1.5.13 1.17-.34 2.35-1.04 3.19-.69.85-1.83 1.51-2.95 1.42-.15-1.15.41-2.35 1.05-3.11z"/>
+            </svg>
+            Get on the App Store
+          </a>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ── Privacy Summary ────────────────────────────────────────────── -->
+<section class="section section-alt" id="privacy" aria-labelledby="privacy-heading">
+  <div class="container">
+    <div class="section-header">
+      <div class="section-label">
+        <svg width="12" height="12" viewBox="0 0 12 12" fill="currentColor" aria-hidden="true"><circle cx="6" cy="6" r="6"/></svg>
+        Privacy
+      </div>
+      <h2 class="section-title" id="privacy-heading">Your data stays yours</h2>
+      <p class="section-sub">
+        PigeonPost is designed around a simple principle: what happens between
+        your devices is nobody else's business.
+      </p>
+    </div>
+    <div class="privacy-card">
+      <div class="privacy-points">
+        <div class="privacy-point">
+          <div class="privacy-point-icon" aria-hidden="true">🚫</div>
+          <div>
+            <h4>No Data Collection</h4>
+            <p>Neither the Windows app nor the iOS companion collects, stores, or transmits any personal data to external servers.</p>
+          </div>
+        </div>
+        <div class="privacy-point">
+          <div class="privacy-point-icon" aria-hidden="true">📡</div>
+          <div>
+            <h4>Local Network Only</h4>
+            <p>All clipboard and file transfers happen directly between your devices over your local network or Tailscale tunnel — never via a cloud service.</p>
+          </div>
+        </div>
+        <div class="privacy-point">
+          <div class="privacy-point-icon" aria-hidden="true">☁️</div>
+          <div>
+            <h4>iCloud Settings Sync</h4>
+            <p>The iOS companion stores your settings (server address, auth preferences) locally on-device. iOS may sync these to your personal iCloud account.</p>
+          </div>
+        </div>
+        <div class="privacy-point">
+          <div class="privacy-point-icon" aria-hidden="true">📊</div>
+          <div>
+            <h4>No Analytics or Telemetry</h4>
+            <p>There are no crash reporters, analytics SDKs, or telemetry pipelines in either app. No data about your usage is ever recorded.</p>
+          </div>
+        </div>
+      </div>
+      <a href="privacy.html" class="privacy-link">
+        Read the full Privacy Policy
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true">
+          <path d="M5 12h14M12 5l7 7-7 7"/>
+        </svg>
+      </a>
+    </div>
+  </div>
+</section>
+
+<!-- ── Support ────────────────────────────────────────────────────── -->
+<section class="section section-white" id="support" aria-labelledby="support-heading">
+  <div class="container">
+    <div class="support-card">
+      <div>
+        <h3 id="support-heading">Need help or found a bug?</h3>
+        <p>
+          Open an issue on GitHub — it's the best way to report a problem, ask a question,
+          or suggest a feature. Issues are triaged promptly and all conversations are public
+          so the community can benefit.
+        </p>
+      </div>
+      <a href="https://github.com/holgerimbery/PigeonPost/issues" class="btn btn-outline" target="_blank" rel="noopener">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+          <path d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.531 1.032 1.531 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z"/>
+        </svg>
+        Open an Issue on GitHub
+      </a>
+    </div>
+  </div>
+</section>
+
+<!-- ── Footer ─────────────────────────────────────────────────────── -->
+<footer class="footer" role="contentinfo">
+  <div class="footer-inner">
+    <div class="footer-top">
+      <div class="footer-brand">
+        <div class="footer-logo">
+          <span aria-hidden="true">🕊️</span>
+          <span>PigeonPost</span>
+        </div>
+        <p>Seamless clipboard &amp; file transfer between Windows 11 and iPhone. No cloud. No account. Just your local network.</p>
+      </div>
+      <div class="footer-links-group">
+        <div class="footer-col">
+          <h4>Product</h4>
+          <ul>
+            <li><a href="#features">Features</a></li>
+            <li><a href="#download">Download</a></li>
+            <li><a href="https://github.com/holgerimbery/PigeonPost/releases" target="_blank" rel="noopener">Release Notes</a></li>
+          </ul>
+        </div>
+        <div class="footer-col">
+          <h4>Resources</h4>
+          <ul>
+            <li><a href="https://github.com/holgerimbery/PigeonPost/wiki" target="_blank" rel="noopener">Documentation</a></li>
+            <li><a href="https://github.com/holgerimbery/PigeonPost/wiki/HTTP-API-Reference" target="_blank" rel="noopener">API Reference</a></li>
+            <li><a href="https://github.com/holgerimbery/PigeonPost/wiki/iOS-Shortcuts" target="_blank" rel="noopener">iOS Shortcuts</a></li>
+          </ul>
+        </div>
+        <div class="footer-col">
+          <h4>Support</h4>
+          <ul>
+            <li><a href="https://github.com/holgerimbery/PigeonPost/issues" target="_blank" rel="noopener">Report an Issue</a></li>
+            <li><a href="https://github.com/holgerimbery/PigeonPost/wiki/Troubleshooting" target="_blank" rel="noopener">Troubleshooting</a></li>
+            <li><a href="privacy.html">Privacy Policy</a></li>
+          </ul>
+        </div>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <p>
+        &copy; 2026 <a href="https://github.com/holgerimbery" target="_blank" rel="noopener">Holger Imbery</a>.
+        Released under the <a href="https://github.com/holgerimbery/PigeonPost/blob/main/LICENSE" target="_blank" rel="noopener">MIT License</a>.
+      </p>
+      <span class="mit-badge">MIT Licensed · Open Source</span>
+    </div>
+  </div>
+</footer>
+
+<script>
+  // Mobile nav toggle
+  const hamburger = document.getElementById('hamburger');
+  const navLinks  = document.getElementById('navLinks');
+  hamburger.addEventListener('click', () => {
+    const open = navLinks.classList.toggle('open');
+    hamburger.setAttribute('aria-expanded', String(open));
+  });
+  // Close nav on link click
+  navLinks.querySelectorAll('a').forEach(a =>
+    a.addEventListener('click', () => { navLinks.classList.remove('open'); hamburger.setAttribute('aria-expanded', 'false'); })
+  );
+</script>
+</body>
+</html>
