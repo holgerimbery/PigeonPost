@@ -12,60 +12,6 @@
                 <XamlControlsResources xmlns="using:Microsoft.UI.Xaml.Controls"/>
             </ResourceDictionary.MergedDictionaries>
 
-            <!--
-                Theme-adaptive semantic brushes — GitHub Primer colour palette.
-                Identical keys to what MainViewModel.RefreshStatusColors() and
-                LogEntry.LevelBrush look up at runtime so C# code and XAML always
-                get the correct colour for the active Windows light/dark mode.
-
-                Palette source: GitHub Primer design system
-                  Light — github.com/primer/primitives (light theme)
-                  Dark  — github.com/primer/primitives (dark theme)
-            -->
-            <ResourceDictionary.ThemeDictionaries>
-
-                <!-- ── GitHub Light ── -->
-                <ResourceDictionary x:Key="Light">
-                    <!-- App title — Copilot / GitHub "done" purple -->
-                    <SolidColorBrush x:Key="AppTitleBrush"              Color="#8250df"/>
-                    <!-- Status indicator (header ellipse + tray icon) -->
-                    <SolidColorBrush x:Key="StatusRunningBrush"         Color="#1a7f37"/>
-                    <SolidColorBrush x:Key="StatusPausedBrush"          Color="#9a6700"/>
-                    <SolidColorBrush x:Key="StatusErrorBrush"           Color="#cf222e"/>
-                    <!-- Activity-log level labels -->
-                    <SolidColorBrush x:Key="LogFileBrush"               Color="#8250df"/>
-                    <SolidColorBrush x:Key="LogClipboardBrush"          Color="#0969da"/>
-                    <SolidColorBrush x:Key="LogWarnBrush"               Color="#9a6700"/>
-                    <SolidColorBrush x:Key="LogErrorBrush"              Color="#cf222e"/>
-                    <SolidColorBrush x:Key="LogSuccessBrush"            Color="#1a7f37"/>
-                    <SolidColorBrush x:Key="LogInfoBrush"               Color="#57606a"/>
-                    <!-- Update banner — GitHub blue scale -->
-                    <SolidColorBrush x:Key="UpdateBannerBackgroundBrush" Color="#0969da"/>
-                    <SolidColorBrush x:Key="UpdateBannerButtonBrush"     Color="#0550ae"/>
-                </ResourceDictionary>
-
-                <!-- ── GitHub Dark ── -->
-                <ResourceDictionary x:Key="Dark">
-                    <!-- App title — Copilot / GitHub "done" purple (lighter for dark bg) -->
-                    <SolidColorBrush x:Key="AppTitleBrush"              Color="#bc8cff"/>
-                    <!-- Status indicator (header ellipse + tray icon) -->
-                    <SolidColorBrush x:Key="StatusRunningBrush"         Color="#3fb950"/>
-                    <SolidColorBrush x:Key="StatusPausedBrush"          Color="#e3b341"/>
-                    <SolidColorBrush x:Key="StatusErrorBrush"           Color="#f85149"/>
-                    <!-- Activity-log level labels -->
-                    <SolidColorBrush x:Key="LogFileBrush"               Color="#bc8cff"/>
-                    <SolidColorBrush x:Key="LogClipboardBrush"          Color="#58a6ff"/>
-                    <SolidColorBrush x:Key="LogWarnBrush"               Color="#e3b341"/>
-                    <SolidColorBrush x:Key="LogErrorBrush"              Color="#f85149"/>
-                    <SolidColorBrush x:Key="LogSuccessBrush"            Color="#3fb950"/>
-                    <SolidColorBrush x:Key="LogInfoBrush"               Color="#8b949e"/>
-                    <!-- Update banner — GitHub blue scale (lighter for dark bg) -->
-                    <SolidColorBrush x:Key="UpdateBannerBackgroundBrush" Color="#1f6feb"/>
-                    <SolidColorBrush x:Key="UpdateBannerButtonBrush"     Color="#388bfd"/>
-                </ResourceDictionary>
-
-            </ResourceDictionary.ThemeDictionaries>
-
             <!-- Reusable card style for stat tiles & content sections -->
             <Style x:Key="CardStyle" TargetType="Border">
                 <Setter Property="CornerRadius" Value="8"/>

@@ -95,7 +95,7 @@
             InfoBar to avoid a XAML compiler quirk with IsOpen bindings in unpackaged apps.
         -->
         <Border Grid.Row="0"
-                Background="{ThemeResource UpdateBannerBackgroundBrush}" CornerRadius="6" Padding="12,8"
+                Background="{ThemeResource AccentFillColorDefaultBrush}" CornerRadius="6" Padding="12,8"
                 Visibility="{x:Bind ViewModel.UpdateBannerVisibility, Mode=OneWay}">
             <Grid>
                 <TextBlock Text="{x:Bind ViewModel.UpdateVersionText, Mode=OneWay}"
@@ -103,14 +103,14 @@
                 <Button Content="Install &amp; Restart"
                         HorizontalAlignment="Right"
                         Command="{x:Bind ViewModel.InstallUpdateCommand}"
-                        Background="{ThemeResource UpdateBannerButtonBrush}" Foreground="White"/>
+                        Background="{ThemeResource AccentFillColorSecondaryBrush}" Foreground="White"/>
             </Grid>
         </Border>
 
         <!-- ============ Header ============ -->
         <Grid Grid.Row="1">
             <TextBlock Text="PigeonPost" FontSize="22" FontWeight="SemiBold"
-                           Foreground="{ThemeResource AppTitleBrush}"
+                           Foreground="{ThemeResource AccentTextFillColorPrimaryBrush}"
                            VerticalAlignment="Center"/>
             <StackPanel Orientation="Horizontal" Spacing="8"
                         HorizontalAlignment="Right" VerticalAlignment="Center">
@@ -256,7 +256,7 @@
                         <TextBlock Text="Activity log" FontWeight="SemiBold" VerticalAlignment="Center"/>
                         <!-- Live count badge — updates whenever entries are added/cleared -->
                         <Border CornerRadius="10" Padding="7,1"
-                                Background="{ThemeResource AppTitleBrush}"
+                                Background="{ThemeResource AccentFillColorDefaultBrush}"
                                 Visibility="{x:Bind ViewModel.LogCountVisible, Mode=OneWay}">
                             <TextBlock Text="{x:Bind ViewModel.LogCount, Mode=OneWay}"
                                        FontSize="11" FontWeight="SemiBold"
