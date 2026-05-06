@@ -221,16 +221,22 @@ public sealed partial class MainWindow : Window
     // ---------------------------------------------------------------- theme
 
     /// <summary>
-    /// Applies the requested theme to the root grid.
+    /// Applies the requested theme to the root grid and optionally to a second element
+    /// (e.g. the Settings ContentDialog, which lives outside the RootGrid visual tree
+    /// and therefore does not inherit RootGrid.RequestedTheme automatically).
     /// "System" (default) follows the Windows dark/light setting automatically.
     /// </summary>
-    public void ApplyTheme(string theme) =>
-        RootGrid.RequestedTheme = theme switch
+    public void ApplyTheme(string theme, FrameworkElement? extra = null)
+    {
+        var et = theme switch
         {
             "Light" => ElementTheme.Light,
             "Dark"  => ElementTheme.Dark,
             _       => ElementTheme.Default,   // "System" → follow Windows
         };
+        RootGrid.RequestedTheme = et;
+        if (extra != null) extra.RequestedTheme = et;
+    }
 
     // ---------------------------------------------------------------- help
 
@@ -258,9 +264,11 @@ public sealed partial class MainWindow : Window
     /// </summary>
     private async void SettingsButton_Click(object sender, RoutedEventArgs e)
     {
-        var dialog = new SettingsDialog(this, ApplyTheme)
+        SettingsDialog? dialog = null;
+        dialog = new SettingsDialog(this, theme => ApplyTheme(theme, dialog))
         {
-            XamlRoot = RootGrid.XamlRoot,
+            XamlRoot       = RootGrid.XamlRoot,
+            RequestedTheme = RootGrid.RequestedTheme,
         };
 
         var result = await dialog.ShowAsync();
