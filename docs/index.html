@@ -264,6 +264,38 @@
       background: #fef3c7; color: #92400e; border: 1px solid #fcd34d;
       border-radius: 99px; padding: .2rem .65rem; white-space: nowrap;
     }
+    /* TestFlight preview button */
+    .btn-preview {
+      background: #000; color: #fff; cursor: pointer; border: none;
+    }
+    .btn-preview:hover { background: #1a1a1a; transform: translateY(-1px); box-shadow: 0 4px 14px rgba(0,0,0,.25); }
+    /* Modal */
+    .tf-modal-overlay {
+      display: none; position: fixed; inset: 0; background: rgba(0,0,0,.55);
+      z-index: 1000; align-items: center; justify-content: center;
+    }
+    .tf-modal-overlay.open { display: flex; }
+    .tf-modal {
+      background: #fff; border-radius: 16px; padding: 2rem 2rem 1.75rem;
+      max-width: 400px; width: calc(100% - 2rem); text-align: center;
+      box-shadow: 0 20px 60px rgba(0,0,0,.25); position: relative;
+    }
+    .tf-modal-icon { font-size: 2.5rem; margin-bottom: .75rem; }
+    .tf-modal h3 { font-size: 1.2rem; font-weight: 700; margin-bottom: .5rem; }
+    .tf-modal p { font-size: .9rem; color: var(--c-muted); margin-bottom: 1.25rem; line-height: 1.6; }
+    .tf-modal-link {
+      display: inline-flex; align-items: center; gap: .5rem;
+      background: #000; color: #fff; text-decoration: none;
+      padding: .75rem 1.5rem; border-radius: 99px; font-weight: 600; font-size: .95rem;
+      transition: background .15s, transform .15s, box-shadow .15s;
+    }
+    .tf-modal-link:hover { background: #1a1a1a; transform: translateY(-1px); box-shadow: 0 4px 14px rgba(0,0,0,.25); }
+    .tf-modal-close {
+      position: absolute; top: .75rem; right: .75rem;
+      background: none; border: none; cursor: pointer; font-size: 1.4rem; color: var(--c-muted);
+      line-height: 1; padding: .25rem;
+    }
+    .tf-modal-close:hover { color: var(--c-text); }
     .hero-title-row {
       display: flex; flex-direction: column; align-items: center;
       gap: .3rem; margin-bottom: 1.25rem;
@@ -437,15 +469,12 @@
       </svg>
       Download for Windows
     </a>
-    <div class="btn-soon-wrap">
-      <span class="btn-soon-badge">Soon — Still in Review</span>
-      <span class="btn btn-secondary btn-ios-coming">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-          <path d="M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45 4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.8-.91.65.03 2.47.26 3.64 1.98l-.09.06c-.22.13-2.18 1.28-2.16 3.81.03 3.02 2.65 4.03 2.68 4.04l-.07.27zM13 3.5c.73-.83 1.94-1.46 2.94-1.5.13 1.17-.34 2.35-1.04 3.19-.69.85-1.83 1.51-2.95 1.42-.15-1.15.41-2.35 1.05-3.11z"/>
-        </svg>
-        Get on App Store
-      </span>
-    </div>
+    <button class="btn btn-ios btn-preview" onclick="openTFModal()">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+        <path d="M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45 4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.8-.91.65.03 2.47.26 3.64 1.98l-.09.06c-.22.13-2.18 1.28-2.16 3.81.03 3.02 2.65 4.03 2.68 4.04l-.07.27zM13 3.5c.73-.83 1.94-1.46 2.94-1.5.13 1.17-.34 2.35-1.04 3.19-.69.85-1.83 1.51-2.95 1.42-.15-1.15.41-2.35 1.05-3.11z"/>
+      </svg>
+      Join the Preview
+    </button>
   </div>
   <p class="hero-note">Windows 11 · iOS 17+ · No cloud · No account</p>
 </section>
@@ -608,13 +637,12 @@
         </ul>
         <div class="platform-cta">
           <div class="btn-soon-wrap">
-            <span class="btn-soon-badge">Soon — Still in Review</span>
-            <span class="btn btn-ios btn-ios-coming">
+            <button class="btn btn-ios btn-preview" onclick="openTFModal()">
               <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
                 <path d="M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45 4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.8-.91.65.03 2.47.26 3.64 1.98l-.09.06c-.22.13-2.18 1.28-2.16 3.81.03 3.02 2.65 4.03 2.68 4.04l-.07.27zM13 3.5c.73-.83 1.94-1.46 2.94-1.5.13 1.17-.34 2.35-1.04 3.19-.69.85-1.83 1.51-2.95 1.42-.15-1.15.41-2.35 1.05-3.11z"/>
               </svg>
-              Get on the App Store
-            </span>
+              Join the Preview
+            </button>
           </div>
         </div>
       </div>
@@ -747,6 +775,22 @@
   </div>
 </footer>
 
+<!-- ── TestFlight Preview Modal ────────────────────────────────────── -->
+<div class="tf-modal-overlay" id="tfModal" role="dialog" aria-modal="true" aria-labelledby="tfModalTitle">
+  <div class="tf-modal">
+    <button class="tf-modal-close" onclick="closeTFModal()" aria-label="Close">&#x2715;</button>
+    <div class="tf-modal-icon">🚀</div>
+    <h3 id="tfModalTitle">Join the iOS Preview</h3>
+    <p>Test PigeonPost on iOS before the official App Store release via Apple TestFlight.</p>
+    <a class="tf-modal-link" href="https://testflight.apple.com/join/WfTE8neN" target="_blank" rel="noopener">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+        <path d="M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45 4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.8-.91.65.03 2.47.26 3.64 1.98l-.09.06c-.22.13-2.18 1.28-2.16 3.81.03 3.02 2.65 4.03 2.68 4.04l-.07.27zM13 3.5c.73-.83 1.94-1.46 2.94-1.5.13 1.17-.34 2.35-1.04 3.19-.69.85-1.83 1.51-2.95 1.42-.15-1.15.41-2.35 1.05-3.11z"/>
+      </svg>
+      Open in TestFlight
+    </a>
+  </div>
+</div>
+
 <script>
   // Mobile nav toggle
   const hamburger = document.getElementById('hamburger');
@@ -759,6 +803,19 @@
   navLinks.querySelectorAll('a').forEach(a =>
     a.addEventListener('click', () => { navLinks.classList.remove('open'); hamburger.setAttribute('aria-expanded', 'false'); })
   );
+  function openTFModal() {
+    const overlay = document.getElementById('tfModal');
+    overlay.classList.add('open');
+    overlay.addEventListener('click', function onOutside(e) {
+      if (e.target === overlay) { closeTFModal(); overlay.removeEventListener('click', onOutside); }
+    });
+    document.addEventListener('keydown', function onEsc(e) {
+      if (e.key === 'Escape') { closeTFModal(); document.removeEventListener('keydown', onEsc); }
+    });
+  }
+  function closeTFModal() {
+    document.getElementById('tfModal').classList.remove('open');
+  }
 </script>
 </body>
 </html>
