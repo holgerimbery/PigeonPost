@@ -47,21 +47,17 @@ public sealed class LogEntry
     };
 
     /// <summary>
-    /// Hex colour string for the level label foreground.
-    /// Returns a value safe for use with <c>x:Bind</c> in a DataTemplate without
-    /// touching any WinUI / XAML types — avoids the threading and resource-lookup
-    /// issues that arise when returning a <c>Brush</c> from inside a compiled binding.
-    /// The XAML side converts this to a <see cref="Microsoft.UI.Xaml.Media.SolidColorBrush"/>
-    /// via <c>HexColorConverter</c>.
-    /// Light-mode colours are used; they look fine on both light and dark Mica backgrounds.
+    /// Returns the <c>App.xaml</c> ThemeDictionary resource key for the level label foreground.
+    /// <c>HexColorConverter</c> resolves the key against <c>Application.Current.Resources</c>
+    /// at binding time, so the correct Light or Dark GitHub Primer colour is always returned.
     /// </summary>
     public string LevelColor => Level switch
     {
-        LogLevel.File      => "#8250df",   // purple
-        LogLevel.Clipboard => "#0969da",   // blue
-        LogLevel.Warn      => "#9a6700",   // amber
-        LogLevel.Error     => "#cf222e",   // red
-        LogLevel.Success   => "#1a7f37",   // green
-        _                  => "#57606a",   // grey  (Info)
+        LogLevel.File      => "LogFileBrush",
+        LogLevel.Clipboard => "LogClipboardBrush",
+        LogLevel.Warn      => "LogWarnBrush",
+        LogLevel.Error     => "LogErrorBrush",
+        LogLevel.Success   => "LogSuccessBrush",
+        _                  => "LogInfoBrush",
     };
 }

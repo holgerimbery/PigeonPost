@@ -95,7 +95,7 @@
             InfoBar to avoid a XAML compiler quirk with IsOpen bindings in unpackaged apps.
         -->
         <Border Grid.Row="0"
-                Background="#1E6BBF" CornerRadius="6" Padding="12,8"
+                Background="{ThemeResource UpdateBannerBackgroundBrush}" CornerRadius="6" Padding="12,8"
                 Visibility="{x:Bind ViewModel.UpdateBannerVisibility, Mode=OneWay}">
             <Grid>
                 <TextBlock Text="{x:Bind ViewModel.UpdateVersionText, Mode=OneWay}"
@@ -103,7 +103,7 @@
                 <Button Content="Install &amp; Restart"
                         HorizontalAlignment="Right"
                         Command="{x:Bind ViewModel.InstallUpdateCommand}"
-                        Background="#2980D9" Foreground="White"/>
+                        Background="{ThemeResource UpdateBannerButtonBrush}" Foreground="White"/>
             </Grid>
         </Border>
 
