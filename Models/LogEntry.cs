@@ -47,17 +47,17 @@ public sealed class LogEntry
     };
 
     /// <summary>
-    /// Returns the <c>App.xaml</c> ThemeDictionary resource key for the level label foreground.
+    /// Returns the WinUI 3 semantic system brush key for the level label foreground.
     /// <c>HexColorConverter</c> resolves the key against <c>Application.Current.Resources</c>
-    /// at binding time, so the correct Light or Dark GitHub Primer colour is always returned.
+    /// at binding time, returning the correct brush for the active Light / Dark theme.
     /// </summary>
     public string LevelColor => Level switch
     {
-        LogLevel.File      => "LogFileBrush",
-        LogLevel.Clipboard => "LogClipboardBrush",
-        LogLevel.Warn      => "LogWarnBrush",
-        LogLevel.Error     => "LogErrorBrush",
-        LogLevel.Success   => "LogSuccessBrush",
-        _                  => "LogInfoBrush",
+        LogLevel.File      => "AccentTextFillColorPrimaryBrush",
+        LogLevel.Clipboard => "AccentTextFillColorPrimaryBrush",
+        LogLevel.Warn      => "SystemFillColorCautionBrush",
+        LogLevel.Error     => "SystemFillColorCriticalBrush",
+        LogLevel.Success   => "SystemFillColorSuccessBrush",
+        _                  => "TextFillColorSecondaryBrush",
     };
 }

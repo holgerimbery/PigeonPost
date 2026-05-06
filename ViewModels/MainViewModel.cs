@@ -206,7 +206,7 @@ public partial class MainViewModel : ObservableObject
     /// </summary>
     public void RefreshStatusColors()
     {
-        var key       = _state.Paused ? "StatusPausedBrush" : "StatusRunningBrush";
+        var key       = _state.Paused ? "SystemFillColorCautionBrush" : "SystemFillColorSuccessBrush";
         var resources = Application.Current.Resources;
 
         if (resources.TryGetValue(key, out var brushObj) && brushObj is SolidColorBrush scb)
