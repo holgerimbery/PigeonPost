@@ -198,7 +198,8 @@
                 <StackPanel>
                     <TextBlock Style="{StaticResource StatValueStyle}"
                                Text="{x:Bind ViewModel.UptimeText, Mode=OneWay}"
-                               FontFamily="Consolas"/>
+                               FontFamily="Consolas"
+                               FontSize="17"/>
                     <TextBlock Style="{StaticResource StatLabelStyle}" Text="Uptime"/>
                 </StackPanel>
             </Border>
@@ -236,7 +237,7 @@
         </Grid>
 
         <!-- ============ Footer ============ -->
-        <StackPanel Grid.Row="5" HorizontalAlignment="Center" Margin="0,6,0,0" Spacing="2">
+        <StackPanel Grid.Row="6" HorizontalAlignment="Center" Margin="0,6,0,6" Spacing="2">
             <TextBlock Text="© 2026 Holger Imbery · MIT License"
                        FontSize="11" Opacity="0.45" HorizontalAlignment="Center"/>
             <TextBlock Text="{x:Bind AppVersion, Mode=OneTime}"

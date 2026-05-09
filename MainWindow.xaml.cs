@@ -49,7 +49,8 @@ public sealed partial class MainWindow : Window
     private ActivityLogWindow? _activityLogWindow;
     private SettingsWindow? _settingsWindow;
 
-    // Maximum window dimensions in raw physical pixels.
+    // Maximum window dimensions in logical device-independent pixels.
+    // Converted to physical pixels at runtime by multiplying with the DPI scale factor.
     private const int MaxWindowWidth  = 1000;
     private const int MaxWindowHeight = 600;
 
@@ -74,10 +75,15 @@ public sealed partial class MainWindow : Window
         catch { /* AppWindow unavailable in some hosts */ }
 
         // Size the window to show all content comfortably and cap it at MaxWindowWidth × MaxWindowHeight.
-        // 760 px wide keeps the 4-column stat-card layout (AdaptiveTrigger fires at 520 DIP).
+        // 800 logical px wide keeps the 4-column stat-card layout (AdaptiveTrigger fires at 520 DIP)
+        // and leaves room for the Tailscale row without crowding.
+        // AppWindow.Resize() uses physical pixels, so we multiply by the DPI scale factor so the
+        // window appears the same logical size regardless of the display scaling setting.
         try
         {
-            AppWindow?.Resize(new Windows.Graphics.SizeInt32(760, 460));
+            var scale = GetScaleFactor();
+            AppWindow?.Resize(new Windows.Graphics.SizeInt32(
+                (int)(800 * scale), (int)(540 * scale)));
 
             // Disable the maximize button so the user cannot accidentally blast the window
             // beyond the intended compact size.
@@ -128,7 +134,8 @@ public sealed partial class MainWindow : Window
 
     /// <summary>
     /// Clamps the window to <see cref="MaxWindowWidth"/> × <see cref="MaxWindowHeight"/>
-    /// whenever the user resizes it beyond those limits.
+    /// (logical pixels, converted to physical pixels at runtime) whenever the user resizes
+    /// it beyond those limits.
     /// A guard flag prevents re-entrancy when <c>Resize()</c> itself triggers another
     /// <c>Changed</c> event.
     /// </summary>
@@ -137,15 +144,37 @@ public sealed partial class MainWindow : Window
     {
         if (!args.DidSizeChange || _sizeClamping) return;
 
+        var scale = GetScaleFactor();
+        var maxW  = (int)(MaxWindowWidth  * scale);
+        var maxH  = (int)(MaxWindowHeight * scale);
+
         var s    = sender.Size;
-        var newW = Math.Min(s.Width,  MaxWindowWidth);
-        var newH = Math.Min(s.Height, MaxWindowHeight);
+        var newW = Math.Min(s.Width,  maxW);
+        var newH = Math.Min(s.Height, maxH);
 
         if (newW == s.Width && newH == s.Height) return;
 
         _sizeClamping = true;
         try   { sender.Resize(new Windows.Graphics.SizeInt32(newW, newH)); }
         finally { _sizeClamping = false; }
+    }
+
+    /// <summary>
+    /// Returns the DPI scale factor for this window (e.g. 1.0 at 96 DPI, 1.5 at 144 DPI).
+    /// Used to convert between logical device-independent pixels and the physical pixels that
+    /// <see cref="Microsoft.UI.Windowing.AppWindow.Resize"/> requires.
+    /// </summary>
+    [System.Runtime.InteropServices.DllImport("user32.dll")]
+    private static extern uint GetDpiForWindow(IntPtr hWnd);
+
+    private double GetScaleFactor()
+    {
+        try
+        {
+            var hwnd = WinRT.Interop.WindowNative.GetWindowHandle(this);
+            return GetDpiForWindow(hwnd) / 96.0;
+        }
+        catch { return 1.0; }
     }
 
     // ---------------------------------------------------------------- tray icon
