@@ -31,11 +31,15 @@ public static class UpdateService
     /// check fails (no network, rate-limited, etc.), or when already up-to-date.
     /// Never throws — all exceptions are caught and silently swallowed.
     /// </summary>
-    public static async Task<UpdateInfo?> CheckForUpdatesAsync()
+    /// <param name="includeBeta">
+    /// When <c>true</c> pre-release tags are also considered.
+    /// Defaults to <c>false</c> (stable only).
+    /// </param>
+    public static async Task<UpdateInfo?> CheckForUpdatesAsync(bool includeBeta = false)
     {
         try
         {
-            var mgr = CreateManager();
+            var mgr = CreateManager(includeBeta);
 
             // IsInstalled is false when running a raw dev build (no Squirrel/Velopack
             // installation directory). Skip the check to avoid confusing errors.
@@ -60,7 +64,7 @@ public static class UpdateService
     public static async Task DownloadAndApplyAsync(UpdateInfo update,
                                                     Action<int>? onProgress = null)
     {
-        var mgr = CreateManager();
+        var mgr = CreateManager(SettingsService.Current.IncludeBetaUpdates);
         await mgr.DownloadUpdatesAsync(update, onProgress).ConfigureAwait(false);
 
         // Exit the current process and let Velopack's Update.exe re-launch the
@@ -72,8 +76,7 @@ public static class UpdateService
 
     /// <summary>
     /// Creates an <see cref="UpdateManager"/> pointed at the GitHub Releases feed.
-    /// <c>prerelease: false</c> ensures only stable tags are offered to users.
     /// </summary>
-    private static UpdateManager CreateManager() =>
-        new(new GithubSource(GitHubRepo, null, prerelease: false));
+    private static UpdateManager CreateManager(bool prerelease = false) =>
+        new(new GithubSource(GitHubRepo, null, prerelease: prerelease));
 }

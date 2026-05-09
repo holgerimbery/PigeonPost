@@ -34,6 +34,12 @@ public class AppSettings
     /// Auto-generated on first load; can be regenerated from the Settings dialog.
     /// </summary>
     public string AuthToken { get; set; } = string.Empty;
+
+    /// <summary>
+    /// When <c>true</c> the update check also considers pre-release (beta) builds.
+    /// Defaults to <c>false</c> so normal users only receive stable releases.
+    /// </summary>
+    public bool IncludeBetaUpdates { get; set; } = false;
 }
 
 /// <summary>

@@ -52,13 +52,18 @@ jobs:
         run: dotnet restore PigeonPost.csproj
 
       # Extract the semver from the tag (strips the leading 'v').
-      # e.g.  refs/tags/v1.2.3  →  PACK_VERSION=1.2.3
+      # e.g.  refs/tags/v1.2.3       →  PACK_VERSION=1.2.3,        FILE_VERSION=1.2.3.0
+      #       refs/tags/v1.5.0-beta.1 →  PACK_VERSION=1.5.0-beta.1, FILE_VERSION=1.5.0.0
+      # FileVersion / AssemblyVersion are Windows PE properties and must be purely
+      # numeric (major.minor.build.revision).  We strip any prerelease suffix.
       - name: Parse version from tag
         shell: pwsh
         run: |
-          $tag = "${{ github.ref_name }}"           # e.g. v1.2.3
-          $ver = $tag.TrimStart('v')                 # e.g. 1.2.3
+          $tag = "${{ github.ref_name }}"           # e.g. v1.5.0-beta.1
+          $ver = $tag.TrimStart('v')                 # e.g. 1.5.0-beta.1
+          $numericVer = ($ver -split '-')[0]         # e.g. 1.5.0
           echo "PACK_VERSION=$ver" >> $env:GITHUB_ENV
+          echo "FILE_VERSION=$numericVer.0" >> $env:GITHUB_ENV
 
       # Publish a self-contained folder (NOT single-file).
       # Velopack's vpk tool needs all the DLLs/assets in a directory to pack them.
@@ -75,8 +80,8 @@ jobs:
             /p:PublishSingleFile=false `
             /p:EnableMsixTooling=true `
             /p:Version=$env:PACK_VERSION `
-            /p:FileVersion="$env:PACK_VERSION.0" `
-            /p:AssemblyVersion="$env:PACK_VERSION.0" `
+            /p:FileVersion=$env:FILE_VERSION `
+            /p:AssemblyVersion=$env:FILE_VERSION `
             -o publish-${{ matrix.rid }}
 
       # Install the Velopack CLI tool (vpk) globally.
