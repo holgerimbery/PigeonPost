@@ -104,6 +104,115 @@ jobs:
             --channel  ${{ matrix.channel }} `
             --outputDir releases-${{ matrix.channel }}
 
+      # Build an MSIX package from the already-published output.
+      # Assets (logos) are generated from the project ICO via System.Drawing.
+      # The AppxManifest.xml is derived from Package.appxmanifest with the
+      # correct version and processor architecture injected.
+      # The package is signed with a self-signed certificate (CN=PigeonPost).
+      # For a trusted / Store-ready cert: add MSIX_CERT_PFX_BASE64 and
+      # MSIX_CERT_PASSWORD as repository secrets; the step will prefer them.
+      - name: Build MSIX package (${{ matrix.channel }})
+        shell: pwsh
+        env:
+          MSIX_CERT_PFX_BASE64: ${{ secrets.MSIX_CERT_PFX_BASE64 }}
+          MSIX_CERT_PASSWORD:    ${{ secrets.MSIX_CERT_PASSWORD }}
+        run: |
+          $rid      = "${{ matrix.rid }}"
+          $channel  = "${{ matrix.channel }}"
+          $arch     = $rid -replace "win-", ""          # x64 | arm64
+          $pubDir   = "publish-$rid"
+          $relDir   = "releases-$channel"
+
+          # ── 1. Generate MSIX logo assets from PigeonPost.ico ──────────────
+          Add-Type -AssemblyName System.Drawing
+          $ico = New-Object System.Drawing.Icon("Assets\PigeonPost.ico")
+          $src = $ico.ToBitmap()
+
+          function Save-Png($bmp, $path, $w, $h) {
+            $dst = New-Object System.Drawing.Bitmap($w, $h)
+            $g   = [System.Drawing.Graphics]::FromImage($dst)
+            $g.InterpolationMode = [System.Drawing.Drawing2D.InterpolationMode]::HighQualityBicubic
+            $g.SmoothingMode     = [System.Drawing.Drawing2D.SmoothingMode]::AntiAlias
+            $g.DrawImage($bmp, 0, 0, $w, $h)
+            $g.Dispose()
+            $dst.Save($path, [System.Drawing.Imaging.ImageFormat]::Png)
+            $dst.Dispose()
+          }
+
+          $assetDir = "$pubDir\Assets"
+          New-Item -ItemType Directory -Path $assetDir -Force | Out-Null
+
+          Save-Png $src "$assetDir\Square44x44Logo.png"   44  44
+          Save-Png $src "$assetDir\Square150x150Logo.png" 150 150
+          Save-Png $src "$assetDir\StoreLogo.png"          50  50
+          Save-Png $src "$assetDir\SplashScreen.png"      620 300
+
+          # Wide tile: use banner_cropped.png if it exists, else scale the icon
+          if (Test-Path "Assets\banner_cropped.png") {
+            $banner = [System.Drawing.Image]::FromFile((Resolve-Path "Assets\banner_cropped.png"))
+            Save-Png $banner "$assetDir\Wide310x150Logo.png" 310 150
+            $banner.Dispose()
+          } else {
+            Save-Png $src "$assetDir\Wide310x150Logo.png" 310 150
+          }
+          $src.Dispose(); $ico.Dispose()
+
+          # ── 2. Inject version & architecture into the manifest ────────────
+          $manifest = Get-Content Package.appxmanifest -Raw
+          $manifest  = $manifest -replace 'PLACEHOLDER_VERSION', $env:FILE_VERSION
+          $manifest  = $manifest -replace 'PLACEHOLDER_ARCH',    $arch
+          $manifest | Set-Content "$pubDir\AppxManifest.xml" -Encoding UTF8
+
+          # ── 3. Locate makeappx.exe and signtool.exe from Windows SDK ──────
+          $sdkBin   = "C:\Program Files (x86)\Windows Kits\10\bin"
+          $makeappx = Get-ChildItem $sdkBin -Filter makeappx.exe -Recurse |
+                        Where-Object { $_.FullName -match "\\x64\\" } |
+                        Sort-Object FullName -Descending |
+                        Select-Object -First 1 -ExpandProperty FullName
+          $signtool = Get-ChildItem $sdkBin -Filter signtool.exe -Recurse |
+                        Where-Object { $_.FullName -match "\\x64\\" } |
+                        Sort-Object FullName -Descending |
+                        Select-Object -First 1 -ExpandProperty FullName
+          Write-Host "makeappx: $makeappx"
+          Write-Host "signtool: $signtool"
+
+          # ── 4. Pack MSIX ──────────────────────────────────────────────────
+          $msixName = "PigeonPost-$channel.msix"
+          & $makeappx pack /d $pubDir /p $msixName /nv /o
+          if ($LASTEXITCODE -ne 0) { throw "makeappx failed with exit code $LASTEXITCODE" }
+
+          # ── 5. Sign MSIX ──────────────────────────────────────────────────
+          if ($env:MSIX_CERT_PFX_BASE64) {
+            # Use the repository secret (real code-signing cert)
+            $pfxBytes = [Convert]::FromBase64String($env:MSIX_CERT_PFX_BASE64)
+            [IO.File]::WriteAllBytes("signing.pfx", $pfxBytes)
+            $certPwd = $env:MSIX_CERT_PASSWORD
+          } else {
+            # Generate a self-signed certificate for CI / sideloading
+            $certPwd = "PigeonPost-$(Get-Random)"
+            $cert = New-SelfSignedCertificate -Type Custom `
+              -Subject "CN=PigeonPost" `
+              -KeyUsage DigitalSignature `
+              -FriendlyName "PigeonPost" `
+              -CertStoreLocation "Cert:\CurrentUser\My" `
+              -TextExtension @("2.5.29.37={text}1.3.6.1.5.5.7.3.3","2.5.29.19={text}")
+            $pwdSec = ConvertTo-SecureString -String $certPwd -Force -AsPlainText
+            Export-PfxCertificate -Cert "Cert:\CurrentUser\My\$($cert.Thumbprint)" `
+              -FilePath "signing.pfx" -Password $pwdSec | Out-Null
+          }
+
+          & $signtool sign /fd SHA256 /f "signing.pfx" /p $certPwd $msixName
+          if ($LASTEXITCODE -ne 0) { throw "signtool failed with exit code $LASTEXITCODE" }
+
+          # ── 6. Move MSIX alongside Velopack artifacts for upload ──────────
+          Move-Item $msixName "$relDir\$msixName"
+
+          # Clean up certificate material
+          Remove-Item "signing.pfx" -Force -ErrorAction SilentlyContinue
+          Get-ChildItem "Cert:\CurrentUser\My" |
+            Where-Object { $_.Subject -eq "CN=PigeonPost" } |
+            Remove-Item -ErrorAction SilentlyContinue
+
       # Attach every file for this channel to the GitHub Release.
       # Running from parallel matrix jobs: softprops/action-gh-release handles
       # uploading from multiple jobs to the same release correctly.

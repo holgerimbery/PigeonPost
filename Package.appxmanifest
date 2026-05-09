@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  MSIX package manifest template.
+  PLACEHOLDER_VERSION and PLACEHOLDER_ARCH are substituted by the release workflow.
+
+  The publisher "CN=PigeonPost" matches the self-signed certificate generated in CI.
+  For Microsoft Store or enterprise distribution replace the Publisher value with your
+  real code-signing certificate Subject and supply MSIX_CERT_PFX_BASE64 / MSIX_CERT_PASSWORD
+  as repository secrets.
+-->
+<Package
+  xmlns="http://schemas.microsoft.com/appx/manifest/foundation/windows10"
+  xmlns:uap="http://schemas.microsoft.com/appx/manifest/uap/windows10"
+  xmlns:rescap="http://schemas.microsoft.com/appx/manifest/foundation/windows10/restrictedcapabilities"
+  IgnorableNamespaces="uap rescap">
+
+  <Identity
+    Name="PigeonPost"
+    Publisher="CN=PigeonPost"
+    Version="PLACEHOLDER_VERSION"
+    ProcessorArchitecture="PLACEHOLDER_ARCH" />
+
+  <Properties>
+    <DisplayName>PigeonPost</DisplayName>
+    <PublisherDisplayName>Holger Imbery</PublisherDisplayName>
+    <Logo>Assets\StoreLogo.png</Logo>
+  </Properties>
+
+  <Dependencies>
+    <TargetDeviceFamily Name="Windows.Desktop"
+      MinVersion="10.0.17763.0"
+      MaxVersionTested="10.0.19041.0" />
+  </Dependencies>
+
+  <Resources>
+    <Resource Language="en-us" />
+  </Resources>
+
+  <Applications>
+    <Application Id="App"
+      Executable="PigeonPost.exe"
+      EntryPoint="Windows.FullTrustApplication">
+      <uap:VisualElements
+        DisplayName="PigeonPost"
+        Description="Send text messages and files on your local network"
+        BackgroundColor="transparent"
+        Square150x150Logo="Assets\Square150x150Logo.png"
+        Square44x44Logo="Assets\Square44x44Logo.png">
+        <uap:DefaultTile Wide310x150Logo="Assets\Wide310x150Logo.png" />
+        <uap:SplashScreen Image="Assets\SplashScreen.png" />
+      </uap:VisualElements>
+    </Application>
+  </Applications>
+
+  <Capabilities>
+    <!-- Required to run as a full-trust Win32 application inside the MSIX container -->
+    <rescap:Capability Name="runFullTrust" />
+    <!-- mDNS peer discovery over LAN -->
+    <Capability Name="privateNetworkClientServer" />
+    <Capability Name="internetClientServer" />
+  </Capabilities>
+
+</Package>
