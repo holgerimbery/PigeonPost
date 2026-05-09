@@ -54,10 +54,11 @@ public sealed partial class SettingsWindow : Window
         catch { /* AppWindow unavailable in some test hosts */ }
 
         // Pre-populate controls from current settings.
-        AutostartSwitch.IsOn    = AutostartService.GetEnabled();
-        DownloadsFolderBox.Text = SettingsService.Current.DownloadsFolder;
-        RequireAuthSwitch.IsOn  = SettingsService.Current.AuthEnabled;
-        AuthTokenBox.Text       = SettingsService.Current.AuthToken;
+        AutostartSwitch.IsOn      = AutostartService.GetEnabled();
+        DownloadsFolderBox.Text   = SettingsService.Current.DownloadsFolder;
+        RequireAuthSwitch.IsOn    = SettingsService.Current.AuthEnabled;
+        AuthTokenBox.Text         = SettingsService.Current.AuthToken;
+        IncludeBetaSwitch.IsOn    = SettingsService.Current.IncludeBetaUpdates;
 
         // Select the matching theme radio without triggering the live-preview handler.
         ThemeRadios.SelectionChanged -= ThemeRadios_SelectionChanged;
@@ -91,10 +92,11 @@ public sealed partial class SettingsWindow : Window
     {
         AutostartService.SetEnabled(AutostartSwitch.IsOn);
 
-        SettingsService.Current.DownloadsFolder = DownloadsFolderBox.Text;
-        SettingsService.Current.Theme           = SelectedThemeTag();
-        SettingsService.Current.AuthEnabled     = RequireAuthSwitch.IsOn;
-        SettingsService.Current.AuthToken       = AuthTokenBox.Text;
+        SettingsService.Current.DownloadsFolder    = DownloadsFolderBox.Text;
+        SettingsService.Current.Theme              = SelectedThemeTag();
+        SettingsService.Current.AuthEnabled        = RequireAuthSwitch.IsOn;
+        SettingsService.Current.AuthToken          = AuthTokenBox.Text;
+        SettingsService.Current.IncludeBetaUpdates = IncludeBetaSwitch.IsOn;
         SettingsService.Save();
 
         _saved = true;
@@ -151,7 +153,7 @@ public sealed partial class SettingsWindow : Window
             CheckUpdateButton.Content   = "Checking…";
             UpdateStatusText.Visibility = Visibility.Collapsed;
 
-            var update = await UpdateService.CheckForUpdatesAsync();
+            var update = await UpdateService.CheckForUpdatesAsync(IncludeBetaSwitch.IsOn);
 
             if (update is null)
             {

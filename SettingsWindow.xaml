@@ -118,6 +118,11 @@
                 <TextBlock Text="Updates" FontWeight="SemiBold" FontSize="14"
                            Foreground="{ThemeResource TextFillColorPrimaryBrush}"/>
 
+                <ToggleSwitch x:Name="IncludeBetaSwitch"
+                              Header="Include beta releases"
+                              OffContent="" OnContent=""
+                              MinWidth="0"/>
+
                 <StackPanel Spacing="8">
                     <Button x:Name="CheckUpdateButton"
                             Content="Check for Updates"
