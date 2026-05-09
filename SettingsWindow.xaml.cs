@@ -2,6 +2,7 @@
 // Licensed under the MIT License. See LICENSE in the project root for license information.
 
 using System;
+using System.Threading.Tasks;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using PigeonPost.Services;
@@ -12,92 +13,121 @@ using WinRT.Interop;
 namespace PigeonPost;
 
 /// <summary>
-/// Settings ContentDialog: Start with Windows, download folder, and UI theme.
+/// Standalone settings window. Replaces the former <c>SettingsDialog</c> ContentDialog.
 ///
 /// Theme changes are applied immediately for live preview.
-/// Pressing Cancel reverts the theme to whatever it was before the dialog opened.
-/// Pressing Save persists all settings to <c>settings.json</c>.
+/// Clicking Cancel (or closing the window without saving) reverts the theme to
+/// whatever it was when the window was opened.
+/// Clicking Save persists all settings to <c>settings.json</c> and fires
+/// <see cref="SettingsSaved"/>.
 /// </summary>
-public sealed partial class SettingsDialog : ContentDialog
+public sealed partial class SettingsWindow : Window
 {
-    private readonly Window _hostWindow;
+    /// <summary>Raised when the user clicks Save and all settings have been persisted.</summary>
+    public event EventHandler? SettingsSaved;
 
-    /// <summary>Callback invoked immediately when the user changes the theme radio selection.</summary>
-    private readonly Action<string> _applyTheme;
+    /// <summary>Callback that applies a theme string to the main window for live preview.</summary>
+    private readonly Action<string> _applyMainTheme;
 
-    /// <summary>Theme that was active when the dialog was opened (used to revert on Cancel).</summary>
+    /// <summary>Theme that was active when the window was opened (used to revert on cancel).</summary>
     private readonly string _originalTheme;
 
+    /// <summary>Set to <c>true</c> when the user clicks Save so the Closing handler knows not to revert.</summary>
+    private bool _saved;
+
     /// <summary>
-    /// Initialises the dialog and pre-populates all controls from <see cref="SettingsService.Current"/>.
+    /// Initialises the settings window and pre-populates all controls from
+    /// <see cref="SettingsService.Current"/>.
     /// </summary>
-    /// <param name="hostWindow">The parent window, needed for FolderPicker initialisation.</param>
-    /// <param name="applyTheme">
-    /// Delegate that applies a theme string ("Light"/"Dark"/"System") to the main window.
+    /// <param name="applyMainTheme">
+    /// Delegate that applies a theme string ("Light"/"Dark"/"System") to the main window
+    /// and the activity-log window for live preview.
     /// </param>
-    public SettingsDialog(Window hostWindow, Action<string> applyTheme)
+    public SettingsWindow(Action<string> applyMainTheme)
     {
-        _hostWindow   = hostWindow;
-        _applyTheme   = applyTheme;
-        _originalTheme = SettingsService.Current.Theme;
+        _applyMainTheme = applyMainTheme;
+        _originalTheme  = SettingsService.Current.Theme;
 
         InitializeComponent();
 
-        // Pre-populate controls from current settings.
-        AutostartSwitch.IsOn       = AutostartService.GetEnabled();
-        DownloadsFolderBox.Text    = SettingsService.Current.DownloadsFolder;
-        RequireAuthSwitch.IsOn     = SettingsService.Current.AuthEnabled;
-        AuthTokenBox.Text          = SettingsService.Current.AuthToken;
+        try { AppWindow?.Resize(new Windows.Graphics.SizeInt32(460, 660)); }
+        catch { /* AppWindow unavailable in some test hosts */ }
 
-        // Select the matching theme radio button without triggering the live-preview handler.
+        // Pre-populate controls from current settings.
+        AutostartSwitch.IsOn    = AutostartService.GetEnabled();
+        DownloadsFolderBox.Text = SettingsService.Current.DownloadsFolder;
+        RequireAuthSwitch.IsOn  = SettingsService.Current.AuthEnabled;
+        AuthTokenBox.Text       = SettingsService.Current.AuthToken;
+
+        // Select the matching theme radio without triggering the live-preview handler.
         ThemeRadios.SelectionChanged -= ThemeRadios_SelectionChanged;
         SelectThemeRadio(SettingsService.Current.Theme);
         ThemeRadios.SelectionChanged += ThemeRadios_SelectionChanged;
 
-        // Wire the Save (Primary) button.
-        PrimaryButtonClick += OnSave;
+        // Revert theme if the window is closed without saving.
+        if (AppWindow != null)
+            AppWindow.Closing += OnClosing;
+    }
+
+    // ── Closing ──────────────────────────────────────────────────────────────
+
+    /// <summary>
+    /// Reverts the theme to its pre-settings state when the window is closed without
+    /// having been saved (i.e. via the title-bar X or the Cancel button).
+    /// </summary>
+    private void OnClosing(Microsoft.UI.Windowing.AppWindow sender,
+                           Microsoft.UI.Windowing.AppWindowClosingEventArgs args)
+    {
+        if (!_saved)
+        {
+            _applyMainTheme(_originalTheme);
+            ApplyLocalTheme(_originalTheme);
+        }
     }
 
     // ── Save ─────────────────────────────────────────────────────────────────
 
-    /// <summary>
-    /// Persists all settings. Called when the user clicks Save.
-    /// The theme is already applied live; this only writes to disk and updates service state.
-    /// </summary>
-    private void OnSave(ContentDialog _, ContentDialogButtonClickEventArgs args)
+    private void SaveButton_Click(object sender, RoutedEventArgs e)
     {
-        // Update autostart registry.
         AutostartService.SetEnabled(AutostartSwitch.IsOn);
 
-        // Update settings object and persist.
         SettingsService.Current.DownloadsFolder = DownloadsFolderBox.Text;
         SettingsService.Current.Theme           = SelectedThemeTag();
         SettingsService.Current.AuthEnabled     = RequireAuthSwitch.IsOn;
         SettingsService.Current.AuthToken       = AuthTokenBox.Text;
         SettingsService.Save();
+
+        _saved = true;
+        SettingsSaved?.Invoke(this, EventArgs.Empty);
+        Close();
     }
+
+    // ── Cancel ───────────────────────────────────────────────────────────────
+
+    private void CancelButton_Click(object sender, RoutedEventArgs e) => Close();
 
     // ── Theme live preview ────────────────────────────────────────────────────
 
     /// <summary>
-    /// Applies the selected theme immediately so the user sees a live preview.
-    /// Cancelling the dialog reverts via <see cref="_originalTheme"/>.
+    /// Applies the selected theme immediately to both the main window (via callback)
+    /// and this window's own root so the user gets a live preview.
     /// </summary>
     private void ThemeRadios_SelectionChanged(object sender, SelectionChangedEventArgs e)
     {
-        _applyTheme(SelectedThemeTag());
+        var theme = SelectedThemeTag();
+        _applyMainTheme(theme);
+        ApplyLocalTheme(theme);
     }
 
     // ── Browse for folder ─────────────────────────────────────────────────────
 
-    /// <summary>Opens a FolderPicker and updates the downloads path text box.</summary>
+    /// <summary>Opens a FolderPicker using this window's own HWND and updates the path box.</summary>
     private async void BrowseButton_Click(object sender, RoutedEventArgs e)
     {
         var picker = new FolderPicker();
 
-        // Required for unpackaged WinUI 3 apps: bind the picker to the window HWND.
-        InitializeWithWindow.Initialize(picker,
-            WindowNative.GetWindowHandle(_hostWindow));
+        // Bind the picker to this window's HWND (no external host window needed).
+        InitializeWithWindow.Initialize(picker, WindowNative.GetWindowHandle(this));
 
         picker.SuggestedStartLocation = PickerLocationId.Downloads;
         picker.FileTypeFilter.Add("*");
@@ -110,25 +140,23 @@ public sealed partial class SettingsDialog : ContentDialog
     // ── Update check ─────────────────────────────────────────────────────────
 
     /// <summary>
-    /// Checks for a newer release on GitHub. Disables the button while checking,
-    /// then reports the result inline. If an update is available the button label
-    /// changes to "Download &amp; Install" and triggers the update on the next click.
+    /// Checks for a newer release on GitHub. On the second click (when an update was found)
+    /// it downloads and applies the update.
     /// </summary>
     private async void CheckUpdateButton_Click(object sender, RoutedEventArgs e)
     {
-        // First click — check for update.
         if (CheckUpdateButton.Tag as string != "update-ready")
         {
             CheckUpdateButton.IsEnabled = false;
             CheckUpdateButton.Content   = "Checking…";
-            UpdateStatusText.Visibility = Microsoft.UI.Xaml.Visibility.Collapsed;
+            UpdateStatusText.Visibility = Visibility.Collapsed;
 
             var update = await UpdateService.CheckForUpdatesAsync();
 
             if (update is null)
             {
                 UpdateStatusText.Text       = "✅  You're up to date.";
-                UpdateStatusText.Visibility = Microsoft.UI.Xaml.Visibility.Visible;
+                UpdateStatusText.Visibility = Visibility.Visible;
                 CheckUpdateButton.Content   = "Check for Updates";
                 CheckUpdateButton.IsEnabled = true;
             }
@@ -136,18 +164,16 @@ public sealed partial class SettingsDialog : ContentDialog
             {
                 var newVer = update.TargetFullRelease?.Version?.ToString() ?? "newer version";
                 UpdateStatusText.Text       = $"🆕  Update available: v{newVer}";
-                UpdateStatusText.Visibility = Microsoft.UI.Xaml.Visibility.Visible;
+                UpdateStatusText.Visibility = Visibility.Visible;
                 CheckUpdateButton.Content   = "Download & Install";
                 CheckUpdateButton.Tag       = "update-ready";
                 CheckUpdateButton.IsEnabled = true;
-                // Store the UpdateInfo for the second click.
                 CheckUpdateButton.DataContext = update;
             }
 
             return;
         }
 
-        // Second click — download and apply.
         if (CheckUpdateButton.DataContext is not Velopack.UpdateInfo pendingUpdate) return;
 
         CheckUpdateButton.IsEnabled = false;
@@ -161,7 +187,6 @@ public sealed partial class SettingsDialog : ContentDialog
 
     // ── Security ──────────────────────────────────────────────────────────────
 
-    /// <summary>Copies the bearer token to the Windows clipboard.</summary>
     private void CopyTokenButton_Click(object sender, RoutedEventArgs e)
     {
         var dp = new DataPackage();
@@ -169,10 +194,6 @@ public sealed partial class SettingsDialog : ContentDialog
         Clipboard.SetContent(dp);
     }
 
-    /// <summary>
-    /// Generates a new bearer token, updates the text box and the in-memory settings.
-    /// The new token is not saved to disk until the user clicks Save.
-    /// </summary>
     private void RegenerateTokenButton_Click(object sender, RoutedEventArgs e)
     {
         var newToken = SettingsService.GenerateToken();
@@ -182,14 +203,9 @@ public sealed partial class SettingsDialog : ContentDialog
 
     // ── Helpers ───────────────────────────────────────────────────────────────
 
-    /// <summary>Returns the <c>Tag</c> string of the currently selected theme radio button.</summary>
     private string SelectedThemeTag() =>
         (ThemeRadios.SelectedItem as RadioButton)?.Tag as string ?? "System";
 
-    /// <summary>Returns the theme string that was active before the dialog was opened.</summary>
-    public string OriginalTheme => _originalTheme;
-
-    /// <summary>Selects the radio button whose Tag matches <paramref name="theme"/>.</summary>
     private void SelectThemeRadio(string theme)
     {
         foreach (var item in ThemeRadios.Items)
@@ -200,8 +216,21 @@ public sealed partial class SettingsDialog : ContentDialog
                 return;
             }
         }
-        // Default to the last item ("Follow Windows") if no match found.
         if (ThemeRadios.Items.Count > 0)
             ThemeRadios.SelectedIndex = ThemeRadios.Items.Count - 1;
     }
+
+    /// <summary>Applies the theme to this window's own root grid.</summary>
+    private void ApplyLocalTheme(string theme)
+    {
+        RootGrid.RequestedTheme = theme switch
+        {
+            "Light" => ElementTheme.Light,
+            "Dark"  => ElementTheme.Dark,
+            _       => ElementTheme.Default,
+        };
+    }
+
+    /// <summary>Applies the theme to this window's root grid (called from MainWindow).</summary>
+    public void ApplyTheme(ElementTheme theme) => RootGrid.RequestedTheme = theme;
 }

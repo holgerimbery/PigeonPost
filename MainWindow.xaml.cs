@@ -15,7 +15,7 @@ using PigeonPost.ViewModels;
 namespace PigeonPost;
 
 /// <summary>
-/// Main application window: Mica backdrop, stat cards, collapsible activity log,
+/// Main application window: Mica backdrop, stat cards,
 /// and a system-tray icon via H.NotifyIcon.
 ///
 /// Responsibilities:
@@ -23,6 +23,7 @@ namespace PigeonPost;
 ///     <item>Create and own the <see cref="MainViewModel"/>.</item>
 ///     <item>Wire ViewModel property changes to tray-icon tooltip updates.</item>
 ///     <item>Intercept the close button to hide instead of exiting (minimize-to-tray).</item>
+///     <item>Manage single-instance <see cref="ActivityLogWindow"/> and per-open <see cref="SettingsWindow"/>.</item>
 ///   </list>
 /// </summary>
 public sealed partial class MainWindow : Window
@@ -44,6 +45,13 @@ public sealed partial class MainWindow : Window
     private TaskbarIcon? _trayIcon;
     private MenuFlyoutItem? _pauseMenuItem;
     private bool _isQuitting;
+    private bool _sizeClamping;
+    private ActivityLogWindow? _activityLogWindow;
+    private SettingsWindow? _settingsWindow;
+
+    // Maximum window dimensions in raw physical pixels.
+    private const int MaxWindowWidth  = 1000;
+    private const int MaxWindowHeight = 600;
 
     public MainWindow(AppState state)
     {
@@ -65,12 +73,20 @@ public sealed partial class MainWindow : Window
         }
         catch { /* AppWindow unavailable in some hosts */ }
 
-        // Set an initial window size that comfortably shows all elements:
-        //   - 640 px wide  → above the 520 DIP AdaptiveTrigger threshold → 4-col stat cards
-        // Default window size — set to match user-preferred size (physical pixels).
+        // Size the window to show all content comfortably and cap it at MaxWindowWidth × MaxWindowHeight.
+        // 760 px wide keeps the 4-column stat-card layout (AdaptiveTrigger fires at 520 DIP).
         try
         {
-            AppWindow?.Resize(new Windows.Graphics.SizeInt32(1428, 828));
+            AppWindow?.Resize(new Windows.Graphics.SizeInt32(760, 460));
+
+            // Disable the maximize button so the user cannot accidentally blast the window
+            // beyond the intended compact size.
+            if (AppWindow?.Presenter is Microsoft.UI.Windowing.OverlappedPresenter op)
+                op.IsMaximizable = false;
+
+            // Enforce the hard cap on every resize (e.g. when the user drags the border).
+            if (AppWindow != null)
+                AppWindow.Changed += OnAppWindowChanged;
         }
         catch { /* AppWindow may be unavailable on first launch in some hosts */ }
 
@@ -108,6 +124,28 @@ public sealed partial class MainWindow : Window
         if (_isQuitting) return;   // real quit — let the close proceed
         args.Cancel = true;
         sender.Hide();
+    }
+
+    /// <summary>
+    /// Clamps the window to <see cref="MaxWindowWidth"/> × <see cref="MaxWindowHeight"/>
+    /// whenever the user resizes it beyond those limits.
+    /// A guard flag prevents re-entrancy when <c>Resize()</c> itself triggers another
+    /// <c>Changed</c> event.
+    /// </summary>
+    private void OnAppWindowChanged(Microsoft.UI.Windowing.AppWindow sender,
+                                    Microsoft.UI.Windowing.AppWindowChangedEventArgs args)
+    {
+        if (!args.DidSizeChange || _sizeClamping) return;
+
+        var s    = sender.Size;
+        var newW = Math.Min(s.Width,  MaxWindowWidth);
+        var newH = Math.Min(s.Height, MaxWindowHeight);
+
+        if (newW == s.Width && newH == s.Height) return;
+
+        _sizeClamping = true;
+        try   { sender.Resize(new Windows.Graphics.SizeInt32(newW, newH)); }
+        finally { _sizeClamping = false; }
     }
 
     // ---------------------------------------------------------------- tray icon
@@ -221,21 +259,23 @@ public sealed partial class MainWindow : Window
     // ---------------------------------------------------------------- theme
 
     /// <summary>
-    /// Applies the requested theme to the root grid and optionally to a second element
-    /// (e.g. the Settings ContentDialog, which lives outside the RootGrid visual tree
-    /// and therefore does not inherit RootGrid.RequestedTheme automatically).
+    /// Applies the requested theme to the root grid.
+    /// Also propagates to the activity-log and settings windows if they are open,
+    /// so all windows stay in sync.
     /// "System" (default) follows the Windows dark/light setting automatically.
     /// </summary>
-    public void ApplyTheme(string theme, FrameworkElement? extra = null)
+    public void ApplyTheme(string theme)
     {
         var et = theme switch
         {
             "Light" => ElementTheme.Light,
             "Dark"  => ElementTheme.Dark,
-            _       => ElementTheme.Default,   // "System" → follow Windows
+            _       => ElementTheme.Default,
         };
         RootGrid.RequestedTheme = et;
-        if (extra != null) extra.RequestedTheme = et;
+        _activityLogWindow?.ApplyTheme(et);
+        // SettingsWindow applies its own theme in ThemeRadios_SelectionChanged;
+        // no need to push it back here to avoid loops.
     }
 
     // ---------------------------------------------------------------- help
@@ -256,33 +296,43 @@ public sealed partial class MainWindow : Window
         catch { /* browser unavailable — silently ignore */ }
     }
 
+    // ---------------------------------------------------------------- activity log
+
+    /// <summary>
+    /// Opens (or re-activates) the standalone activity-log window.
+    /// A single instance is created lazily and kept alive for the session.
+    /// </summary>
+    private void ActivityLogButton_Click(object sender, RoutedEventArgs e)
+    {
+        if (_activityLogWindow == null)
+        {
+            _activityLogWindow = new ActivityLogWindow(ViewModel);
+            // Keep the activity-log window in sync with the current theme.
+            _activityLogWindow.ApplyTheme(RootGrid.RequestedTheme);
+        }
+
+        _activityLogWindow.AppWindow?.Show();
+        _activityLogWindow.Activate();
+    }
+
     // ---------------------------------------------------------------- settings
 
     /// <summary>
-    /// Opens the Settings ContentDialog. Applies the selected theme live for preview;
-    /// reverts on Cancel, persists on Save and refreshes the downloads label.
+    /// Opens the standalone settings window. Creates a fresh instance each time
+    /// (mirrors the old ContentDialog lifecycle) so controls are always pre-populated
+    /// from the current saved state.
     /// </summary>
-    private async void SettingsButton_Click(object sender, RoutedEventArgs e)
+    private void SettingsButton_Click(object sender, RoutedEventArgs e)
     {
-        SettingsDialog? dialog = null;
-        dialog = new SettingsDialog(this, theme => ApplyTheme(theme, dialog))
-        {
-            XamlRoot       = RootGrid.XamlRoot,
-            RequestedTheme = RootGrid.RequestedTheme,
-        };
+        // Close any previously open settings window before opening a new one.
+        _settingsWindow?.Close();
 
-        var result = await dialog.ShowAsync();
+        _settingsWindow = new SettingsWindow(theme => ApplyTheme(theme));
+        _settingsWindow.SettingsSaved += (_, _) => ViewModel.RefreshDownloadsLine();
 
-        if (result == ContentDialogResult.None)
-        {
-            // User cancelled — revert to the theme that was active before opening.
-            ApplyTheme(dialog.OriginalTheme);
-        }
-        else
-        {
-            // User saved — refresh the downloads-folder label in the ViewModel.
-            ViewModel.RefreshDownloadsLine();
-        }
+        // Apply the current theme so the window matches immediately.
+        _settingsWindow.ApplyTheme(RootGrid.RequestedTheme);
+
+        _settingsWindow.Activate();
     }
-
 }
