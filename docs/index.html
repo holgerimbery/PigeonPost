@@ -237,6 +237,7 @@
     }
     .platform-icon-win { background: linear-gradient(135deg, #dbeafe, #bfdbfe); }
     .platform-icon-ios { background: linear-gradient(135deg, #dcfce7, #bbf7d0); }
+    .platform-icon-shortcuts { background: linear-gradient(135deg, #fff7ed, #fed7aa); }
     .platform-name { font-size: 1.25rem; font-weight: 700; letter-spacing: -.01em; }
     .platform-sub { font-size: .85rem; color: var(--c-muted); margin-top: .15rem; }
     .platform-list { list-style: none; display: flex; flex-direction: column; gap: .6rem; margin-bottom: 1.75rem; }
@@ -253,6 +254,14 @@
     .btn-win:hover { background: var(--c-accent-h); transform: translateY(-1px); box-shadow: 0 4px 14px rgba(37,99,235,.3); }
     .btn-ios { background: #000; color: #fff; }
     .btn-ios:hover { background: #1a1a1a; transform: translateY(-1px); box-shadow: 0 4px 14px rgba(0,0,0,.25); }
+    .btn-shortcuts { background: var(--c-green); color: #fff; }
+    .btn-shortcuts:hover { background: #15803d; transform: translateY(-1px); box-shadow: 0 4px 14px rgba(22,163,74,.3); }
+    .opensource-badge {
+      display: inline-flex; align-items: center; gap: .35rem;
+      font-size: .72rem; font-weight: 700; letter-spacing: .07em; text-transform: uppercase;
+      background: #f0fdf4; color: #15803d; border: 1px solid #86efac;
+      border-radius: 99px; padding: .25rem .75rem; margin-bottom: 1rem; white-space: nowrap;
+    }
     .btn-ios-coming {
       background: #f1f5f9; color: var(--c-muted);
       border: 1px solid var(--c-border); cursor: default;
@@ -644,6 +653,38 @@
               Join the Preview
             </button>
           </div>
+        </div>
+      </div>
+
+      <!-- iOS Shortcuts -->
+      <div class="platform-card">
+        <div class="platform-header">
+          <div class="platform-icon-wrap platform-icon-shortcuts" aria-hidden="true">⚡</div>
+          <div>
+            <div class="platform-name">iOS Shortcuts</div>
+            <div class="platform-sub">iPhone &amp; iPad — No Install Required</div>
+          </div>
+        </div>
+        <span class="opensource-badge">
+          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 14H9V8h2v8zm4 0h-2V8h2v8z"/></svg>
+          Open Source · Free
+        </span>
+        <ul class="platform-list" aria-label="iOS Shortcuts features">
+          <li>No separate app to install — uses the built-in Shortcuts app</li>
+          <li>Send clipboard text to your Windows PC</li>
+          <li>Transfer files from Photos, Files, or Share Sheet</li>
+          <li>Read clipboard content from your PC</li>
+          <li>Bearer token authentication support</li>
+          <li>Requires iOS 16 or later</li>
+          <li>Step-by-step setup guide in the wiki</li>
+        </ul>
+        <div class="platform-cta">
+          <a href="https://github.com/holgerimbery/PigeonPost/wiki/iOS-Shortcuts" class="btn btn-shortcuts" target="_blank" rel="noopener">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true">
+              <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
+            </svg>
+            View Setup Guide
+          </a>
         </div>
       </div>
     </div>
