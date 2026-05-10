@@ -262,6 +262,19 @@
       background: #f0fdf4; color: #15803d; border: 1px solid #86efac;
       border-radius: 99px; padding: .25rem .75rem; margin-bottom: 1rem; white-space: nowrap;
     }
+    .support-note {
+      display: flex; align-items: flex-start; gap: .6rem;
+      background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 10px;
+      padding: .85rem 1rem; margin-bottom: 1.25rem;
+      font-size: .82rem; color: #1e40af; line-height: 1.5;
+    }
+    .support-note-icon { font-size: 1rem; flex-shrink: 0; margin-top: .05rem; }
+    .shortcuts-upsell {
+      font-size: .8rem; color: var(--c-muted); margin-bottom: 1.25rem;
+      padding: .7rem .9rem; background: var(--c-bg);
+      border: 1px solid var(--c-border); border-radius: 8px; line-height: 1.5;
+    }
+    .shortcuts-upsell a { color: var(--c-accent); text-decoration: underline; text-underline-offset: 2px; }
     .btn-ios-coming {
       background: #f1f5f9; color: var(--c-muted);
       border: 1px solid var(--c-border); cursor: default;
@@ -455,7 +468,7 @@
 <section class="hero" aria-labelledby="hero-heading">
   <div class="hero-badge">
     <span class="hero-badge-dot"></span>
-    Windows Server: Free &amp; Open Source · MIT License · iOS App: Paid on App Store
+    Windows Server: Free &amp; Open Source · MIT License · iOS Shortcuts: Free · Companion App: Paid
   </div>
   <img src="banner.png" alt="" class="hero-banner" aria-hidden="true" />
   <h1 id="hero-heading">
@@ -594,6 +607,12 @@
         Download
       </div>
       <h2 class="section-title" id="platforms-heading">Available on Windows and iOS</h2>
+      <p class="section-sub">
+        There are two ways to use PigeonPost on your iPhone or iPad.
+        <strong>iOS Shortcuts</strong> is free, open-source, and works right now using Apple's built-in Shortcuts app.
+        The native <strong>PigeonPostCompanion</strong> app adds more convenience — and your purchase
+        directly supports continued development of the free, open-source Windows server.
+      </p>
     </div>
     <div class="platforms">
       <!-- Windows -->
@@ -644,6 +663,10 @@
           <li>Settings synced via iCloud</li>
           <li>Dark &amp; Light mode support</li>
         </ul>
+        <div class="support-note">
+          <span class="support-note-icon">💙</span>
+          <span>Purchasing this app directly supports continued development of the free, open-source Windows server.</span>
+        </div>
         <div class="platform-cta">
           <div class="btn-soon-wrap">
             <button class="btn btn-ios btn-preview" onclick="openTFModal()">
@@ -662,7 +685,7 @@
           <div class="platform-icon-wrap platform-icon-shortcuts" aria-hidden="true">⚡</div>
           <div>
             <div class="platform-name">iOS Shortcuts</div>
-            <div class="platform-sub">iPhone &amp; iPad — No Install Required</div>
+            <div class="platform-sub">Free &amp; Available Now — No Install Required</div>
           </div>
         </div>
         <span class="opensource-badge">
@@ -678,6 +701,9 @@
           <li>Requires iOS 16 or later</li>
           <li>Step-by-step setup guide in the wiki</li>
         </ul>
+        <div class="shortcuts-upsell">
+          Want more convenience? <a href="#download" onclick="setTimeout(()=>document.querySelector('.platform-card:nth-child(2)').scrollIntoView({behavior:'smooth'}),50)">PigeonPostCompanion</a> adds auto-discovery, a Share Sheet extension, and one-tap access — and your purchase funds the free Windows server.
+        </div>
         <div class="platform-cta">
           <a href="https://github.com/holgerimbery/PigeonPost/wiki/iOS-Shortcuts" class="btn btn-shortcuts" target="_blank" rel="noopener">
             <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true">
@@ -809,9 +835,9 @@
     <div class="footer-bottom">
       <p>
         &copy; 2026 <a href="https://github.com/holgerimbery" target="_blank" rel="noopener">Holger Imbery</a>.
-        Released under the <a href="https://github.com/holgerimbery/PigeonPost/blob/main/LICENSE" target="_blank" rel="noopener">MIT License</a> (Windows server). iOS companion app available on the App Store.
+        Released under the <a href="https://github.com/holgerimbery/PigeonPost/blob/main/LICENSE" target="_blank" rel="noopener">MIT License</a> (Windows server). iOS Shortcuts is free and open-source. The companion app is available on the App Store — your purchase supports ongoing development.
       </p>
-      <span class="mit-badge">Server: MIT Licensed · iOS App: Paid</span>
+      <span class="mit-badge">Server: MIT Licensed · iOS Shortcuts: Free · Companion App: Paid</span>
     </div>
   </div>
 </footer>
