@@ -70,7 +70,17 @@ Full details (setup, client usage, curl examples, status codes) are in the
 
 ## Install
 
-Download the installer for your architecture from the [latest GitHub Release](https://github.com/holgerimbery/PigeonPost/releases/latest) and run it.
+Download the installer for your architecture from the [latest GitHub Release](https://github.com/holgerimbery/PigeonPost/releases/latest) and run it, or install via **Windows Package Manager**:
+
+```
+winget install HolgerImbery.PigeonPost
+```
+
+To upgrade later:
+
+```
+winget upgrade HolgerImbery.PigeonPost
+```
 
 | Architecture | Installer |
 |---|---|

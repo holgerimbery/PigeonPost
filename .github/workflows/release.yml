@@ -205,3 +205,20 @@ jobs:
         with:
           generate_release_notes: true
           files: releases-${{ matrix.channel }}/*
+
+  winget:
+    name: Update winget manifest
+    needs: build
+    runs-on: ubuntu-latest
+    # Only runs when WINGET_TOKEN secret is configured.
+    # On first release after adding to the winget catalog this step will open
+    # an automated PR to microsoft/winget-pkgs via your fork.
+    if: ${{ secrets.WINGET_TOKEN != '' }}
+    steps:
+      - name: Update winget manifest
+        uses: vedantmgoyal9/winget-releaser@v2
+        with:
+          identifier: HolgerImbery.PigeonPost
+          # Match both architecture installers; winget-releaser detects arch from filename.
+          installers-regex: 'PigeonPost-win-(x64|arm64)-Setup\.exe$'
+          token: ${{ secrets.WINGET_TOKEN }}
