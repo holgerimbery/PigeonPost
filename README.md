@@ -91,7 +91,7 @@ The installer is built by Velopack and handles installation, Start Menu shortcut
 Each architecture has its own update feed (`releases.win-x64.json` / `releases.win-arm64.json`).
 Velopack stamps the channel into the installation so the in-app updater always fetches the correct feed automatically — no configuration required.
 
-Installers are signed with **Azure Artifact Signing** so Windows SmartScreen and browsers trust the download without warnings.
+
 
 ---
 

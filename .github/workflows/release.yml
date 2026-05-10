@@ -2,9 +2,9 @@
 # Licensed under the MIT License. See LICENSE in the project root for license information.
 #
 # Triggered when a tag matching v* is pushed (e.g. v1.0.0).
-# Builds Velopack installers + update feeds for Windows x64 AND arm64, signs them
-# with Azure Artifact Signing (when configured), and attaches all assets to the
-# GitHub Release so the in-app auto-updater can find them.
+# Builds Velopack installers + update feeds for Windows x64 AND arm64 and
+# attaches all assets to the GitHub Release so the in-app auto-updater can
+# find them.
 #
 # Each architecture is a separate Velopack "channel":
 #   win-x64  → PigeonPost-win-x64-Setup.exe  + releases.win-x64.json
@@ -14,29 +14,18 @@
 # UpdateManager.CheckForUpdatesAsync() automatically reads the right feed file.
 # Cross-compilation of arm64 works fine on the x64 windows-latest runner.
 #
-# ── Azure Artifact Signing (optional) ────────────────────────────────────────
-# Signing eliminates Windows SmartScreen and browser download warnings.
-# When the GitHub variable AZURE_SIGNING_ACCOUNT is set, the workflow:
-#   1. Signs all EXEs in the publish folder (inner binaries) before packing.
-#   2. Signs the Velopack Setup installer after packing.
+# ── Winget (optional) ────────────────────────────────────────────────────────
+# After each release the winget job submits an automated PR to
+# microsoft/winget-pkgs so users can install/upgrade via:
+#   winget install HolgerImbery.PigeonPost
 #
-# One-time Azure setup — see wiki/Azure-Artifact-Signing-Setup.md for details:
-#   • Create an Artifact Signing account + Public Trust certificate profile.
-#   • Create a Microsoft Entra App Registration with a federated credential
-#     scoped to:  repo:holgerimbery/PigeonPost:ref:refs/tags/*
-#   • Assign the "Artifact Signing Certificate Profile Signer" role to the app.
+# Required GitHub Secret  (Settings → Secrets and variables → Actions):
+#   WINGET_TOKEN  — fine-grained PAT with Contents + PRs read/write on your
+#                   fork of microsoft/winget-pkgs
 #
-# Required GitHub Secrets  (Settings → Secrets and variables → Actions):
-#   AZURE_CLIENT_ID       — Entra App Registration client (application) ID
-#   AZURE_TENANT_ID       — Entra / Azure AD tenant ID
-#   AZURE_SUBSCRIPTION_ID — Azure subscription ID
-#
-# Required GitHub Variables (Settings → Secrets and variables → Actions):
-#   AZURE_SIGNING_ENDPOINT — e.g. https://eus.codesigning.azure.net/
-#   AZURE_SIGNING_ACCOUNT  — Artifact Signing account name
-#   AZURE_SIGNING_PROFILE  — Certificate profile name
-#
-# If none of the above are configured the build still succeeds; signing is skipped.
+# Required GitHub Variable (Settings → Secrets and variables → Actions):
+#   WINGET_ENABLED — set to 'true' to activate the job
+#                    (secrets cannot be used in job-level if conditions)
 # ─────────────────────────────────────────────────────────────────────────────
 #
 # How to release:
@@ -56,11 +45,6 @@ jobs:
     runs-on: windows-latest
     permissions:
       contents: write   # required to create/update the GitHub Release and upload assets
-      id-token: write   # required for OIDC authentication with Azure Artifact Signing
-
-    env:
-      # Signing is enabled when the Azure signing account variable is configured.
-      SIGNING_ENABLED: ${{ vars.AZURE_SIGNING_ACCOUNT != '' }}
 
     strategy:
       matrix:
@@ -115,43 +99,6 @@ jobs:
             /p:AssemblyVersion=$env:FILE_VERSION `
             -o publish-${{ matrix.rid }}
 
-      # Authenticate with Azure using OIDC (no long-lived secrets).
-      # Skipped when signing is not configured.
-      - name: Azure login
-        if: env.SIGNING_ENABLED == 'true'
-        uses: azure/login@v2
-        with:
-          client-id: ${{ secrets.AZURE_CLIENT_ID }}
-          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
-          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
-
-      # Sign all EXEs in the publish folder before Velopack packs them.
-      # This ensures both the main binary and any Velopack stubs are signed,
-      # so the installed application is fully trusted by SmartScreen.
-      - name: Sign published binaries (${{ matrix.rid }})
-        if: env.SIGNING_ENABLED == 'true'
-        uses: azure/artifact-signing-action@v1
-        with:
-          endpoint: ${{ vars.AZURE_SIGNING_ENDPOINT }}
-          signing-account-name: ${{ vars.AZURE_SIGNING_ACCOUNT }}
-          certificate-profile-name: ${{ vars.AZURE_SIGNING_PROFILE }}
-          files-folder: publish-${{ matrix.rid }}
-          files-folder-filter: exe
-          files-folder-recurse: true
-          file-digest: SHA256
-          timestamp-rfc3161: http://timestamp.acs.microsoft.com
-          timestamp-digest: SHA256
-          exclude-environment-credential: true
-          exclude-workload-identity-credential: true
-          exclude-managed-identity-credential: true
-          exclude-shared-token-cache-credential: true
-          exclude-visual-studio-credential: true
-          exclude-visual-studio-code-credential: true
-          exclude-azure-cli-credential: false
-          exclude-azure-powershell-credential: true
-          exclude-azure-developer-cli-credential: true
-          exclude-interactive-browser-credential: true
-
       # Install the Velopack CLI tool (vpk) globally.
       - name: Install vpk
         run: dotnet tool install -g vpk
@@ -172,31 +119,6 @@ jobs:
             --channel  ${{ matrix.channel }} `
             --outputDir releases-${{ matrix.channel }}
 
-      # Sign the Velopack setup installer so browsers and SmartScreen trust the download.
-      # This is the file users download directly from the GitHub Release page.
-      - name: Sign installer (${{ matrix.channel }})
-        if: env.SIGNING_ENABLED == 'true'
-        uses: azure/artifact-signing-action@v1
-        with:
-          endpoint: ${{ vars.AZURE_SIGNING_ENDPOINT }}
-          signing-account-name: ${{ vars.AZURE_SIGNING_ACCOUNT }}
-          certificate-profile-name: ${{ vars.AZURE_SIGNING_PROFILE }}
-          files-folder: releases-${{ matrix.channel }}
-          files-folder-filter: exe
-          file-digest: SHA256
-          timestamp-rfc3161: http://timestamp.acs.microsoft.com
-          timestamp-digest: SHA256
-          exclude-environment-credential: true
-          exclude-workload-identity-credential: true
-          exclude-managed-identity-credential: true
-          exclude-shared-token-cache-credential: true
-          exclude-visual-studio-credential: true
-          exclude-visual-studio-code-credential: true
-          exclude-azure-cli-credential: false
-          exclude-azure-powershell-credential: true
-          exclude-azure-developer-cli-credential: true
-          exclude-interactive-browser-credential: true
-
       # Attach every file for this channel to the GitHub Release.
       # Running from parallel matrix jobs: softprops/action-gh-release handles
       # uploading from multiple jobs to the same release correctly.
@@ -210,10 +132,12 @@ jobs:
     name: Update winget manifest
     needs: build
     runs-on: ubuntu-latest
-    # Only runs when WINGET_TOKEN secret is configured.
-    # On first release after adding to the winget catalog this step will open
-    # an automated PR to microsoft/winget-pkgs via your fork.
-    if: ${{ secrets.WINGET_TOKEN != '' }}
+    # Only runs when WINGET_ENABLED variable is set to 'true'.
+    # Set this in repo Settings → Secrets and variables → Actions → Variables
+    # after configuring WINGET_TOKEN secret and forking microsoft/winget-pkgs.
+    # Note: secrets cannot be referenced in job-level if conditions (GitHub limitation),
+    # so a companion variable is used as the gate instead.
+    if: ${{ vars.WINGET_ENABLED == 'true' }}
     steps:
       - name: Update winget manifest
         uses: vedantmgoyal9/winget-releaser@v2
@@ -222,3 +146,4 @@ jobs:
           # Match both architecture installers; winget-releaser detects arch from filename.
           installers-regex: 'PigeonPost-win-(x64|arm64)-Setup\.exe$'
           token: ${{ secrets.WINGET_TOKEN }}
+
