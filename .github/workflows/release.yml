@@ -2,8 +2,9 @@
 # Licensed under the MIT License. See LICENSE in the project root for license information.
 #
 # Triggered when a tag matching v* is pushed (e.g. v1.0.0).
-# Builds Velopack installers + update feeds for Windows x64 AND arm64 and attaches
-# all assets to the GitHub Release so the in-app auto-updater can find them.
+# Builds Velopack installers + update feeds for Windows x64 AND arm64 and
+# attaches all assets to the GitHub Release so the in-app auto-updater can
+# find them.
 #
 # Each architecture is a separate Velopack "channel":
 #   win-x64  → PigeonPost-win-x64-Setup.exe  + releases.win-x64.json
@@ -12,6 +13,20 @@
 # The installed app knows its own channel (stamped by vpk at install time) so
 # UpdateManager.CheckForUpdatesAsync() automatically reads the right feed file.
 # Cross-compilation of arm64 works fine on the x64 windows-latest runner.
+#
+# ── Winget (optional) ────────────────────────────────────────────────────────
+# After each release the winget job submits an automated PR to
+# microsoft/winget-pkgs so users can install/upgrade via:
+#   winget install HolgerImbery.PigeonPost
+#
+# Required GitHub Secret  (Settings → Secrets and variables → Actions):
+#   WINGET_TOKEN  — fine-grained PAT with Contents + PRs read/write on your
+#                   fork of microsoft/winget-pkgs
+#
+# Required GitHub Variable (Settings → Secrets and variables → Actions):
+#   WINGET_ENABLED — set to 'true' to activate the job
+#                    (secrets cannot be used in job-level if conditions)
+# ─────────────────────────────────────────────────────────────────────────────
 #
 # How to release:
 #   git tag v1.1.0 -m "Release 1.1.0"
@@ -112,3 +127,23 @@ jobs:
         with:
           generate_release_notes: true
           files: releases-${{ matrix.channel }}/*
+
+  winget:
+    name: Update winget manifest
+    needs: build
+    runs-on: ubuntu-latest
+    # Only runs when WINGET_ENABLED variable is set to 'true'.
+    # Set this in repo Settings → Secrets and variables → Actions → Variables
+    # after configuring WINGET_TOKEN secret and forking microsoft/winget-pkgs.
+    # Note: secrets cannot be referenced in job-level if conditions (GitHub limitation),
+    # so a companion variable is used as the gate instead.
+    if: ${{ vars.WINGET_ENABLED == 'true' }}
+    steps:
+      - name: Update winget manifest
+        uses: vedantmgoyal9/winget-releaser@v2
+        with:
+          identifier: HolgerImbery.PigeonPost
+          # Match both architecture installers; winget-releaser detects arch from filename.
+          installers-regex: 'PigeonPost-win-(x64|arm64)-Setup\.exe$'
+          token: ${{ secrets.WINGET_TOKEN }}
+

@@ -70,7 +70,17 @@ Full details (setup, client usage, curl examples, status codes) are in the
 
 ## Install
 
-Download the installer for your architecture from the [latest GitHub Release](https://github.com/holgerimbery/PigeonPost/releases/latest) and run it.
+Download the installer for your architecture from the [latest GitHub Release](https://github.com/holgerimbery/PigeonPost/releases/latest) and run it, or install via **Windows Package Manager**:
+
+```
+winget install HolgerImbery.PigeonPost
+```
+
+To upgrade later:
+
+```
+winget upgrade HolgerImbery.PigeonPost
+```
 
 | Architecture | Installer |
 |---|---|
@@ -80,6 +90,8 @@ Download the installer for your architecture from the [latest GitHub Release](ht
 The installer is built by Velopack and handles installation, Start Menu shortcuts, and future auto-updates.
 Each architecture has its own update feed (`releases.win-x64.json` / `releases.win-arm64.json`).
 Velopack stamps the channel into the installation so the in-app updater always fetches the correct feed automatically — no configuration required.
+
+
 
 ---
 
