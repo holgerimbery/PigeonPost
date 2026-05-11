@@ -54,11 +54,19 @@ public sealed partial class SettingsWindow : Window
         catch { /* AppWindow unavailable in some test hosts */ }
 
         // Pre-populate controls from current settings.
-        AutostartSwitch.IsOn      = AutostartService.GetEnabled();
+#if STORE_BUILD
+        // Store build: StartupTask.GetAsync() is async; fire-and-forget from constructor.
+        _ = LoadAutostartStateAsync();
+
+        // Hide the entire Updates section — the Microsoft Store manages updates.
+        UpdatesSection.Visibility = Visibility.Collapsed;
+#else
+        AutostartSwitch.IsOn   = AutostartService.GetEnabled();
+        IncludeBetaSwitch.IsOn = SettingsService.Current.IncludeBetaUpdates;
+#endif
         DownloadsFolderBox.Text   = SettingsService.Current.DownloadsFolder;
         RequireAuthSwitch.IsOn    = SettingsService.Current.AuthEnabled;
         AuthTokenBox.Text         = SettingsService.Current.AuthToken;
-        IncludeBetaSwitch.IsOn    = SettingsService.Current.IncludeBetaUpdates;
 
         // Select the matching theme radio without triggering the live-preview handler.
         ThemeRadios.SelectionChanged -= ThemeRadios_SelectionChanged;
@@ -88,15 +96,21 @@ public sealed partial class SettingsWindow : Window
 
     // ── Save ─────────────────────────────────────────────────────────────────
 
-    private void SaveButton_Click(object sender, RoutedEventArgs e)
+    private async void SaveButton_Click(object sender, RoutedEventArgs e)
     {
+#if STORE_BUILD
+        await AutostartService.SetEnabledAsync(AutostartSwitch.IsOn);
+#else
         AutostartService.SetEnabled(AutostartSwitch.IsOn);
+#endif
 
         SettingsService.Current.DownloadsFolder    = DownloadsFolderBox.Text;
         SettingsService.Current.Theme              = SelectedThemeTag();
         SettingsService.Current.AuthEnabled        = RequireAuthSwitch.IsOn;
         SettingsService.Current.AuthToken          = AuthTokenBox.Text;
+#if !STORE_BUILD
         SettingsService.Current.IncludeBetaUpdates = IncludeBetaSwitch.IsOn;
+#endif
         SettingsService.Save();
 
         _saved = true;
@@ -144,9 +158,11 @@ public sealed partial class SettingsWindow : Window
     /// <summary>
     /// Checks for a newer release on GitHub. On the second click (when an update was found)
     /// it downloads and applies the update.
+    /// Compiled only for the Winget/Velopack build — Store builds hide this button entirely.
     /// </summary>
     private async void CheckUpdateButton_Click(object sender, RoutedEventArgs e)
     {
+#if !STORE_BUILD
         if (CheckUpdateButton.Tag as string != "update-ready")
         {
             CheckUpdateButton.IsEnabled = false;
@@ -185,7 +201,19 @@ public sealed partial class SettingsWindow : Window
         await UpdateService.DownloadAndApplyAsync(pendingUpdate, pct =>
             DispatcherQueue.TryEnqueue(() =>
                 CheckUpdateButton.Content = $"Downloading… {pct}%"));
+#endif
     }
+
+#if STORE_BUILD
+    /// <summary>
+    /// Asynchronously loads the StartupTask state and updates the toggle switch.
+    /// Called from the constructor as a fire-and-forget because StartupTask.GetAsync is async.
+    /// </summary>
+    private async Task LoadAutostartStateAsync()
+    {
+        AutostartSwitch.IsOn = await AutostartService.GetEnabledAsync();
+    }
+#endif
 
     // ── Security ──────────────────────────────────────────────────────────────
 

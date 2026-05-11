@@ -1,0 +1,258 @@
+# Copyright (c) 2026 Holger Imbery. All rights reserved.
+# Licensed under the MIT License. See LICENSE in the project root for license information.
+#
+# ── Microsoft Store / MSIX workflow ───────────────────────────────────────────
+#
+# Triggered when a tag matching v* is pushed (same trigger as release.yml).
+# Builds MSIX packages for x64 AND ARM64, bundles them into a .msixbundle,
+# attaches the bundle to the GitHub Release, and (optionally) submits to the
+# Microsoft Store via Partner Center API.
+#
+# ── Enable / disable gates ────────────────────────────────────────────────────
+# Required GitHub Variables  (Settings → Secrets and variables → Actions → Variables):
+#   STORE_ENABLED        — set to 'true' to activate the MSIX build jobs
+#   STORE_SUBMIT_ENABLED — set to 'true' to activate the Partner Center submission
+#                          (requires the secrets below; harmless to leave 'false'
+#                           until Partner Center is configured)
+#
+# Required GitHub Secrets  (Settings → Secrets and variables → Actions → Secrets):
+#   STORE_TENANT_ID      — Azure AD tenant ID for Partner Center API access
+#   STORE_CLIENT_ID      — Azure AD application (client) ID
+#   STORE_CLIENT_SECRET  — Azure AD client secret
+#   STORE_APP_ID         — Partner Center application ID (from the app URL)
+#
+# ── Build overview ────────────────────────────────────────────────────────────
+#   store-build   (matrix: x64 + ARM64)
+#     • Updates Package.appxmanifest Version to match the release tag
+#     • Builds MSIX with /p:StorePublish=true /p:Platform=<arch>
+#     • Uploads the per-arch .msix to GitHub Release + as workflow artifact
+#
+#   store-bundle  (needs store-build)
+#     • Downloads both arch artifacts
+#     • Runs makeappx.exe bundle to produce PigeonPost-<version>.msixbundle
+#     • Uploads bundle to GitHub Release + as workflow artifact
+#
+#   store-submit  (needs store-bundle, gated on STORE_SUBMIT_ENABLED)
+#     • Downloads the .msixbundle artifact
+#     • Uses microsoft/store-submission-action to submit to Partner Center
+#
+# ── How to release ────────────────────────────────────────────────────────────
+#   git tag v1.5.0 -m "Release 1.5.0"
+#   git push origin v1.5.0
+# ─────────────────────────────────────────────────────────────────────────────
+
+name: Store
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write   # needed to upload assets to the GitHub Release
+
+jobs:
+
+  # ── Build MSIX packages (x64 and ARM64) ────────────────────────────────────
+  store-build:
+    name: Build MSIX (${{ matrix.platform }})
+    if: ${{ vars.STORE_ENABLED == 'true' }}
+    runs-on: windows-latest
+
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - rid: win-x64
+            platform: x64
+          - rid: win-arm64
+            platform: ARM64
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      # ── Derive version from tag (strips leading 'v') ──
+      - name: Set version variable
+        id: version
+        shell: pwsh
+        run: |
+          $tag  = "${{ github.ref_name }}"           # e.g. v1.5.0
+          $ver  = $tag.TrimStart('v')                # e.g. 1.5.0
+          $quad = "$ver.0"                           # e.g. 1.5.0.0 (4-part for MSIX)
+          echo "ver=$ver"   >> $env:GITHUB_OUTPUT
+          echo "quad=$quad" >> $env:GITHUB_OUTPUT
+
+      # ── Patch Package.appxmanifest with the release version ──
+      - name: Update manifest version
+        shell: pwsh
+        run: |
+          $quad    = "${{ steps.version.outputs.quad }}"
+          $manifest = "Package.appxmanifest"
+          $xml      = [xml](Get-Content $manifest -Raw)
+          $xml.Package.Identity.Version = $quad
+          $xml.Save((Resolve-Path $manifest))
+          Write-Host "Set manifest Version to $quad"
+
+      # ── Setup .NET SDK ──
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "9.0.x"
+
+      # ── Build MSIX ──
+      - name: Build MSIX (${{ matrix.platform }})
+        shell: pwsh
+        run: |
+          $ver  = "${{ steps.version.outputs.ver }}"
+          $quad = "${{ steps.version.outputs.quad }}"
+
+          dotnet publish PigeonPost.csproj `
+            -c Release `
+            -r ${{ matrix.rid }} `
+            --self-contained true `
+            /p:WindowsAppSdkSelfContained=true `
+            /p:StorePublish=true `
+            /p:Platform=${{ matrix.platform }} `
+            /p:AppxBundle=Never `
+            /p:UapAppxPackageBuildMode=StoreUpload `
+            /p:AppxPackageSigningEnabled=false `
+            /p:AppxPackageDir=${{ github.workspace }}\msix-output\ `
+            /p:Version=$ver `
+            /p:FileVersion=$quad
+
+      # ── Locate the produced .msix / .msixupload file ──
+      - name: Locate MSIX output
+        id: msix
+        shell: pwsh
+        run: |
+          $file = Get-ChildItem "${{ github.workspace }}\msix-output" -Recurse `
+                    -Include "*.msix","*.msixupload" |
+                  Select-Object -First 1
+
+          if (-not $file) {
+            Write-Error "No .msix / .msixupload found in msix-output\"
+            exit 1
+          }
+
+          $name = "PigeonPost-${{ steps.version.outputs.ver }}-${{ matrix.platform }}.msix"
+          Copy-Item $file.FullName "${{ github.workspace }}\$name"
+
+          echo "path=${{ github.workspace }}\$name" >> $env:GITHUB_OUTPUT
+          echo "name=$name"                         >> $env:GITHUB_OUTPUT
+          Write-Host "MSIX: $name"
+
+      # ── Upload to GitHub Release ──
+      - name: Upload MSIX to release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: ${{ steps.msix.outputs.path }}
+
+      # ── Upload as workflow artifact (consumed by store-bundle) ──
+      - name: Upload MSIX artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: msix-${{ matrix.platform }}
+          path: ${{ steps.msix.outputs.path }}
+          retention-days: 1
+
+  # ── Bundle x64 + ARM64 into a single .msixbundle ───────────────────────────
+  store-bundle:
+    name: Bundle MSIX
+    needs: store-build
+    runs-on: windows-latest
+
+    steps:
+      - name: Set version variable
+        id: version
+        shell: pwsh
+        run: |
+          $ver = "${{ github.ref_name }}".TrimStart('v')
+          echo "ver=$ver" >> $env:GITHUB_OUTPUT
+
+      - name: Download x64 artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: msix-x64
+          path: bundle-input
+
+      - name: Download ARM64 artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: msix-ARM64
+          path: bundle-input
+
+      - name: Create .msixbundle
+        id: bundle
+        shell: pwsh
+        run: |
+          # Locate the latest makeappx.exe on the runner
+          $makeappx = Get-ChildItem `
+            'C:\Program Files (x86)\Windows Kits\10\bin\*\x64\makeappx.exe' |
+            Sort-Object { [version]($_.Directory.Parent.Name) } -Descending |
+            Select-Object -First 1 -ExpandProperty FullName
+
+          if (-not $makeappx) {
+            Write-Error "makeappx.exe not found on runner"
+            exit 1
+          }
+
+          Write-Host "Using: $makeappx"
+
+          $bundleName = "PigeonPost-${{ steps.version.outputs.ver }}.msixbundle"
+          & $makeappx bundle /d bundle-input /p $bundleName /o
+
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          echo "path=${{ github.workspace }}\$bundleName" >> $env:GITHUB_OUTPUT
+          echo "name=$bundleName"                         >> $env:GITHUB_OUTPUT
+
+      - name: Upload bundle to release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: ${{ steps.bundle.outputs.path }}
+
+      - name: Upload bundle artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: msixbundle
+          path: ${{ steps.bundle.outputs.path }}
+          retention-days: 7
+
+  # ── Partner Center submission ───────────────────────────────────────────────
+  store-submit:
+    name: Submit to Partner Center
+    needs: store-bundle
+    if: ${{ vars.STORE_SUBMIT_ENABLED == 'true' }}
+    runs-on: windows-latest
+
+    steps:
+      - name: Set version variable
+        id: version
+        shell: pwsh
+        run: |
+          $ver = "${{ github.ref_name }}".TrimStart('v')
+          echo "ver=$ver" >> $env:GITHUB_OUTPUT
+
+      - name: Download bundle artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: msixbundle
+          path: submit-input
+
+      - name: Locate bundle file
+        id: bundle
+        shell: pwsh
+        run: |
+          $f = Get-ChildItem submit-input -Filter "*.msixbundle" | Select-Object -First 1
+          echo "path=$($f.FullName)" >> $env:GITHUB_OUTPUT
+
+      - name: Submit to Microsoft Store
+        uses: microsoft/store-submission-action@v1
+        with:
+          app-id:        ${{ secrets.STORE_APP_ID }}
+          tenant-id:     ${{ secrets.STORE_TENANT_ID }}
+          client-id:     ${{ secrets.STORE_CLIENT_ID }}
+          client-secret: ${{ secrets.STORE_CLIENT_SECRET }}
+          package-path:  ${{ steps.bundle.outputs.path }}

@@ -75,6 +75,7 @@ public partial class MainViewModel : ObservableObject
     /// <summary>
     /// Whether a newer version was found on GitHub. Drives the update-banner visibility.
     /// Set from a background thread via <see cref="NotifyUpdateAvailable"/>.
+    /// Always <c>false</c> in the Store build (banner is permanently hidden).
     /// </summary>
     [ObservableProperty] private bool _updateAvailable;
 
@@ -82,12 +83,16 @@ public partial class MainViewModel : ObservableObject
     [ObservableProperty] private string _updateVersionText = "";
 
     /// <summary>
-    /// Drives the update-banner Visibility via x:Bind — avoids the need for a
-    /// BooleanToVisibilityConverter with x:Bind, which causes a CS1503 compile error
-    /// because the generated SetConverterLookupRoot expects a FrameworkElement but gets a Window.
+    /// Drives the update-banner Visibility via x:Bind.
+    /// Always <see cref="Visibility.Collapsed"/> in the Store build — the Microsoft Store
+    /// manages updates for that distribution channel.
     /// </summary>
     public Microsoft.UI.Xaml.Visibility UpdateBannerVisibility =>
+#if STORE_BUILD
+        Microsoft.UI.Xaml.Visibility.Collapsed;
+#else
         _updateAvailable ? Microsoft.UI.Xaml.Visibility.Visible : Microsoft.UI.Xaml.Visibility.Collapsed;
+#endif
 
     /// <summary>Formatted Tailscale address shown in the address card (e.g. "http://100.x.x.x:2560").</summary>
     [ObservableProperty] private string _tailscaleAddress = "";
@@ -148,15 +153,20 @@ public partial class MainViewModel : ObservableObject
 
     /// <summary>
     /// Shows the update banner with the available version string.
+    /// No-op in the Store build — the Microsoft Store manages updates.
     /// Safe to call from any thread.
     /// </summary>
-    public void NotifyUpdateAvailable(string version) =>
+    public void NotifyUpdateAvailable(string version)
+    {
+#if !STORE_BUILD
         _ui.TryEnqueue(() =>
         {
             UpdateVersionText = $"Version {version} is available — click Install & Restart to update.";
             UpdateAvailable   = true;
             OnPropertyChanged(nameof(UpdateBannerVisibility));
         });
+#endif
+    }
 
     // ---------------------------------------------------------------- event handlers
 
@@ -308,10 +318,12 @@ public partial class MainViewModel : ObservableObject
     /// <summary>
     /// Invoked when the user clicks "Install &amp; Restart" in the update banner.
     /// Downloads and applies the pending update; the app restarts automatically.
+    /// No-op in the Store build — the update banner is always hidden there.
     /// </summary>
     [RelayCommand]
     private async Task InstallUpdate()
     {
+#if !STORE_BUILD
         // Re-check so we have the UpdateInfo object to pass to DownloadAndApplyAsync.
         var update = await UpdateService.CheckForUpdatesAsync().ConfigureAwait(false);
         if (update is null) return;
@@ -322,6 +334,9 @@ public partial class MainViewModel : ObservableObject
             _ui.TryEnqueue(() => UpdateVersionText =
                 $"Downloading … {pct}%")).ConfigureAwait(false);
         // DownloadAndApplyAsync calls ApplyUpdatesAndRestart — this line is never reached.
+#else
+        await Task.CompletedTask; // Store builds never reach here; banner is always hidden.
+#endif
     }
 
     /// <summary>
