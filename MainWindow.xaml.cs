@@ -44,6 +44,11 @@ public sealed partial class MainWindow : Window
     private TaskbarIcon? _trayIcon;
     private System.Drawing.Icon? _trayNativeIcon;   // kept alive for the process lifetime
     private IntPtr _trayIconHandle = IntPtr.Zero;   // raw HICON — must be destroyed on quit
+    // Separately-sized HICONs for the window taskbar button (owned, destroyed on quit).
+    // AppWindow.SetIcon only sets ICON_BIG; we also need ICON_SMALL and class icons.
+    private IntPtr _hIconBig   = IntPtr.Zero;
+    private IntPtr _hIconSmall = IntPtr.Zero;
+    private bool   _windowIconApplied;
     private MenuFlyoutItem? _pauseMenuItem;
     private bool _isQuitting;
     private bool _sizeClamping;
@@ -102,6 +107,12 @@ public sealed partial class MainWindow : Window
             AppWindow.Closing += OnAppWindowClosing;
 
         InitializeTrayIcon();
+
+        // Re-apply window icons after the window is activated (= after Activate() is called
+        // in App.OnLaunched). The taskbar button is created at that point and Windows may
+        // initialise it from the window-class icon rather than the per-window icon we set
+        // in the constructor. We use a one-shot handler so we don't fire on every re-activation.
+        Activated += OnWindowFirstActivated;
 
         // Apply the initial theme-appropriate status colours now that XAML resources are loaded.
         ViewModel.RefreshStatusColors();
@@ -174,17 +185,33 @@ public sealed partial class MainWindow : Window
     [System.Runtime.InteropServices.DllImport("user32.dll")]
     private static extern bool DestroyIcon(IntPtr hIcon);
 
-    // WM_SETICON sets both the title-bar icon (ICON_BIG) and the taskbar-button icon (ICON_SMALL).
-    // AppWindow.SetIcon() only sets ICON_BIG, leaving the taskbar button with the generic window icon.
+    // WM_SETICON — sets the per-window title-bar / Alt-Tab icon (ICON_BIG) and the
+    // hint that feeds ICON_SMALL2 which the taskbar button actually uses (ICON_SMALL).
     [System.Runtime.InteropServices.DllImport("user32.dll")]
     private static extern IntPtr SendMessage(IntPtr hWnd, uint msg, IntPtr wParam, IntPtr lParam);
 
+    // SetClassLongPtr — updates the window-CLASS icon so the taskbar button (ICON_SMALL2)
+    // picks up the pigeon. WM_SETICON(ICON_SMALL) alone is not always sufficient because
+    // Windows Vista+ derives the taskbar-button icon from GCLP_HICONSM.
+    [System.Runtime.InteropServices.DllImport("user32.dll")]
+    private static extern IntPtr SetClassLongPtr(IntPtr hWnd, int nIndex, IntPtr dwNewLong);
+
+    // GetSystemMetrics — returns the canonical pixel size for small and large icons at the
+    // current DPI so we load the ICO at the right resolution.
+    [System.Runtime.InteropServices.DllImport("user32.dll")]
+    private static extern int GetSystemMetrics(int nIndex);
+
     private const uint IMAGE_ICON      = 1;
     private const uint LR_LOADFROMFILE = 0x00000010;
-    private const uint LR_DEFAULTSIZE  = 0x00000040;
     private const uint WM_SETICON      = 0x0080;
-    private const int  ICON_SMALL      = 0;
-    private const int  ICON_BIG        = 1;
+    private const int  ICON_SMALL      = 0;   // per-window small icon
+    private const int  ICON_BIG        = 1;   // per-window large icon
+    private const int  GCLP_HICON      = -14; // class large icon  — used by Alt+Tab
+    private const int  GCLP_HICONSM    = -34; // class small icon  — used by taskbar button
+    private const int  SM_CXICON       = 11;  // system large-icon width  (typically 32 px)
+    private const int  SM_CYICON       = 12;  // system large-icon height (typically 32 px)
+    private const int  SM_CXSMICON     = 49;  // system small-icon width  (typically 16–20 px)
+    private const int  SM_CYSMICON     = 50;  // system small-icon height (typically 16–20 px)
 
     private double GetScaleFactor()
     {
@@ -213,8 +240,12 @@ public sealed partial class MainWindow : Window
 
         _trayIcon.ForceCreate();
 
-        // Load icon: primary = extract from EXE resources (always present via <ApplicationIcon>).
-        // Fallback = LoadImage from Assets file (handles PNG-compressed ICO frames).
+        // ── Tray (notification-area) icon ──────────────────────────────────────
+        // Primary: extract from the running EXE's embedded resources (always present
+        // via <ApplicationIcon> in the csproj). This returns a 32×32 System.Drawing.Icon
+        // which is sufficient for the notification area.
+        // Fallback: LoadImage from the Assets file (handles PNG-compressed ICO that
+        // System.Drawing.Icon constructor cannot decode).
         try
         {
             var exePath = System.Diagnostics.Process.GetCurrentProcess().MainModule?.FileName;
@@ -225,7 +256,7 @@ public sealed partial class MainWindow : Window
 
         if (_trayNativeIcon == null && File.Exists(IconPath))
         {
-            var hicon = LoadImage(IntPtr.Zero, IconPath, IMAGE_ICON, 0, 0, LR_LOADFROMFILE | LR_DEFAULTSIZE);
+            var hicon = LoadImage(IntPtr.Zero, IconPath, IMAGE_ICON, 32, 32, LR_LOADFROMFILE);
             if (hicon != IntPtr.Zero)
             {
                 _trayIconHandle = hicon;
@@ -234,30 +265,29 @@ public sealed partial class MainWindow : Window
         }
 
         if (_trayNativeIcon != null)
-        {
             _trayIcon.Icon = _trayNativeIcon;
 
-            // AppWindow.SetIcon() only sets ICON_BIG (title bar / Alt+Tab).
-            // The taskbar button uses ICON_SMALL — send WM_SETICON for both so the
-            // taskbar button shows the pigeon icon instead of a generic window icon.
-            try
-            {
-                var hwnd = WinRT.Interop.WindowNative.GetWindowHandle(this);
-                var hicon = _trayNativeIcon.Handle;
-                SendMessage(hwnd, WM_SETICON, (IntPtr)ICON_BIG,   hicon);
-                SendMessage(hwnd, WM_SETICON, (IntPtr)ICON_SMALL,  hicon);
-            }
-            catch { }
+        // ── Window / taskbar-button icons ──────────────────────────────────────
+        // Load the ICO at the exact sizes Windows uses for large and small icons so
+        // we don't hand a scaled-down 32×32 bitmap to the taskbar button.
+        // We load into separate HICONs (not shared with the tray icon) so ownership
+        // is unambiguous — these are destroyed in the Quit handler.
+        if (File.Exists(IconPath))
+        {
+            int bigW = GetSystemMetrics(SM_CXICON),   bigH = GetSystemMetrics(SM_CYICON);
+            int smW  = GetSystemMetrics(SM_CXSMICON), smH  = GetSystemMetrics(SM_CYSMICON);
+            _hIconBig   = LoadImage(IntPtr.Zero, IconPath, IMAGE_ICON, bigW, bigH, LR_LOADFROMFILE);
+            _hIconSmall = LoadImage(IntPtr.Zero, IconPath, IMAGE_ICON, smW,  smH,  LR_LOADFROMFILE);
         }
 
-        // Diagnostic log — check %TEMP%\pigeonpost-debug.txt to verify icon loading.
+        // Diagnostic log — check %TEMP%\pigeonpost-debug.txt after install.
         try
         {
             var dbg = Path.Combine(Path.GetTempPath(), "pigeonpost-debug.txt");
             File.WriteAllText(dbg,
-                $"{DateTimeOffset.Now}  icon={((_trayNativeIcon != null) ? "OK" : "NULL")}  " +
-                $"iconPath={IconPath}  exists={File.Exists(IconPath)}  " +
-                $"hicon={_trayNativeIcon?.Handle}");
+                $"{DateTimeOffset.Now}  tray={((_trayNativeIcon != null) ? "OK" : "NULL")}  " +
+                $"hBig=0x{_hIconBig:X}  hSmall=0x{_hIconSmall:X}  " +
+                $"iconPath={IconPath}  exists={File.Exists(IconPath)}");
         }
         catch { }
 
@@ -266,6 +296,68 @@ public sealed partial class MainWindow : Window
             if (_trayIcon?.ContextFlyout != null)
                 _trayIcon.ContextFlyout.XamlRoot = RootGrid.XamlRoot;
         };
+    }
+
+    /// <summary>
+    /// One-shot handler: applies window and class icons the first time the window is
+    /// activated (i.e., after <c>window.Activate()</c> in App.OnLaunched).
+    /// The taskbar button is created at this point; setting icons here ensures the
+    /// button shows the pigeon icon rather than the WinUI default.
+    /// </summary>
+    private void OnWindowFirstActivated(object sender, WindowActivatedEventArgs args)
+    {
+        if (_windowIconApplied) return;
+        _windowIconApplied = true;
+        Activated -= OnWindowFirstActivated;
+        ApplyWindowIcons();
+    }
+
+    /// <summary>
+    /// Sets the per-window (WM_SETICON) and window-class (SetClassLongPtr) icons so
+    /// that the title bar, Alt+Tab switcher, and taskbar button all show the pigeon.
+    ///
+    /// <para>
+    /// Why three layers?
+    /// <list type="bullet">
+    ///   <item><term>WM_SETICON ICON_BIG</term>   <description>Title bar and Alt+Tab thumbnail.</description></item>
+    ///   <item><term>WM_SETICON ICON_SMALL</term>  <description>Hints to the taskbar, but Windows Vista+
+    ///     may ignore it in favour of ICON_SMALL2 which is derived from the class icon.</description></item>
+    ///   <item><term>GCLP_HICONSM (class icon)</term> <description>What the Windows Vista+ taskbar
+    ///     button actually uses when querying ICON_SMALL2.</description></item>
+    ///   <item><term>GCLP_HICON   (class icon)</term> <description>Belt-and-suspenders for large class icon.</description></item>
+    /// </list>
+    /// </para>
+    /// </summary>
+    private void ApplyWindowIcons()
+    {
+        if (_hIconBig == IntPtr.Zero && _hIconSmall == IntPtr.Zero) return;
+        try
+        {
+            var hwnd = WinRT.Interop.WindowNative.GetWindowHandle(this);
+            if (hwnd == IntPtr.Zero) return;
+
+            // Fall back to each other if one size failed to load.
+            var hBig   = _hIconBig   != IntPtr.Zero ? _hIconBig   : _hIconSmall;
+            var hSmall = _hIconSmall != IntPtr.Zero ? _hIconSmall : _hIconBig;
+
+            // Per-window instance icons.
+            SendMessage(hwnd, WM_SETICON, (IntPtr)ICON_BIG,   hBig);
+            SendMessage(hwnd, WM_SETICON, (IntPtr)ICON_SMALL,  hSmall);
+
+            // Window-CLASS icons — the taskbar button uses GCLP_HICONSM (ICON_SMALL2).
+            SetClassLongPtr(hwnd, GCLP_HICON,   hBig);
+            SetClassLongPtr(hwnd, GCLP_HICONSM, hSmall);
+
+            // Append result to the diagnostic log.
+            try
+            {
+                var dbg = Path.Combine(Path.GetTempPath(), "pigeonpost-debug.txt");
+                File.AppendAllText(dbg,
+                    $"\nApplyWindowIcons  hwnd=0x{hwnd:X}  hBig=0x{hBig:X}  hSmall=0x{hSmall:X}");
+            }
+            catch { }
+        }
+        catch { }
     }
 
     /// <summary>Builds the tray context menu: Show / Pause-Resume / Quit.</summary>
@@ -310,6 +402,8 @@ public sealed partial class MainWindow : Window
                 _trayIcon?.Dispose();
                 _trayNativeIcon?.Dispose();
                 if (_trayIconHandle != IntPtr.Zero) { DestroyIcon(_trayIconHandle); _trayIconHandle = IntPtr.Zero; }
+                if (_hIconBig   != IntPtr.Zero) { DestroyIcon(_hIconBig);   _hIconBig   = IntPtr.Zero; }
+                if (_hIconSmall != IntPtr.Zero) { DestroyIcon(_hIconSmall); _hIconSmall = IntPtr.Zero; }
                 Environment.Exit(0);
             }),
         });
