@@ -8,7 +8,6 @@ using CommunityToolkit.Mvvm.Input;
 using H.NotifyIcon;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
-using Microsoft.UI.Xaml.Media.Imaging;
 using PigeonPost.Services;
 using PigeonPost.ViewModels;
 
@@ -43,6 +42,7 @@ public sealed partial class MainWindow : Window
                     .GetName().Version?.ToString(3) ?? "1.0.0");
 
     private TaskbarIcon? _trayIcon;
+    private System.Drawing.Icon? _trayNativeIcon;   // kept alive for the process lifetime
     private MenuFlyoutItem? _pauseMenuItem;
     private bool _isQuitting;
     private bool _sizeClamping;
@@ -187,12 +187,20 @@ public sealed partial class MainWindow : Window
     {
         _trayIcon = new TaskbarIcon
         {
-            ToolTipText    = "PigeonPost — Running",
-            IconSource     = BuildIconSource(),
-            ContextFlyout  = BuildTrayMenu(),
+            ToolTipText      = "PigeonPost — Running",
+            ContextFlyout    = BuildTrayMenu(),
             // Left-click on the tray icon opens the window.
             LeftClickCommand = ViewModel.ShowWindowCommand,
         };
+
+        // Load the icon synchronously via Win32 HICON (System.Drawing.Icon).
+        // BitmapImage/ImageSource loads asynchronously and is not yet ready when
+        // ForceCreate() runs, which causes the tray and taskbar to show a blank icon.
+        if (File.Exists(IconPath))
+        {
+            _trayNativeIcon   = new System.Drawing.Icon(IconPath);
+            _trayIcon.Icon    = _trayNativeIcon;
+        }
 
         _trayIcon.ForceCreate();
 
@@ -204,12 +212,6 @@ public sealed partial class MainWindow : Window
                 _trayIcon.ContextFlyout.XamlRoot = RootGrid.XamlRoot;
         };
     }
-
-    /// <summary>
-    /// Creates a <see cref="BitmapImage"/> pointing to the static app icon.
-    /// </summary>
-    private static BitmapImage BuildIconSource() =>
-        new(new Uri($"file:///{IconPath.Replace('\\', '/')}"));
 
     /// <summary>Builds the tray context menu: Show / Pause-Resume / Quit.</summary>
     /// <remarks>
@@ -251,6 +253,7 @@ public sealed partial class MainWindow : Window
             Command = new RelayCommand(() =>
             {
                 _trayIcon?.Dispose();
+                _trayNativeIcon?.Dispose();
                 Environment.Exit(0);
             }),
         });
