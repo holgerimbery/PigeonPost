@@ -3,115 +3,151 @@
 This guide walks through the one-time setup needed to publish PigeonPost
 to the Microsoft Store and activate the automated `store.yml` CI workflow.
 
----
-
-## 1 — Partner Center account
-
-1. Go to <https://partner.microsoft.com/dashboard> and sign in with your Microsoft account.
-2. If you haven't enrolled, choose **Register as an individual developer** (no fee for free apps).
-3. Accept the agreements and complete the registration.
+**You will need:**
+- A browser logged in to your Microsoft account (same one used for Partner Center)
+- A browser tab open to the Azure portal (<https://portal.azure.com>)
+- The `Package.appxmanifest` file open in an editor
 
 ---
 
-## 2 — Create the app listing
+## Step 1 — Partner Center: enroll (if not done yet)
 
-1. In Partner Center → **Apps and games** → **New product** → **App**.
-2. Reserve the name **PigeonPost**.
-3. After creating the app, note the **App ID** from the URL:
-   `https://partner.microsoft.com/…/apps/<APP_ID>/…`
-   — you'll need this as the `STORE_APP_ID` secret.
+1. Open <https://partner.microsoft.com/dashboard>
+2. If prompted to enroll: choose **Individual developer** → complete registration (free for free apps)
 
 ---
 
-## 3 — Find your Publisher DN
+## Step 2 — Partner Center: find your Publisher DN
 
-1. Partner Center → **Account settings** → **Organization profile** (or **Developer profile**).
-2. Copy the **Publisher** field — it looks like `CN=Holger Imbery, O=…, C=DE`.
-3. Update `Package.appxmanifest` → `<Identity Publisher="…">` with this exact value **before** submitting.
+> This is the value that goes into `Package.appxmanifest` → `<Identity Publisher="…">`
 
-> **Tip:** For local testing with sideloading you can use `CN=Holger Imbery` plus a self-signed certificate.
-> For Store submission the Publisher DN must match Partner Center exactly.
+1. Open <https://partner.microsoft.com/dashboard/account/v3/settings/account>
+2. In the left sidebar click **Account settings** → **Legal info** (or **Developer profile** for individuals)
+3. Find the field labelled **Publisher display name** — note it, but what you need is the **Publisher DN**
+4. Scroll to find the field labelled **Publisher** — it looks like:
+   ```
+   CN=Holger Imbery, O=Holger Imbery, L=Berlin, C=DE
+   ```
+   *(The exact format depends on how you registered — it may be just `CN=Holger Imbery`)*
+5. Copy the entire value including `CN=`
 
----
-
-## 4 — Create an Azure AD app for API access
-
-The CI submission step authenticates via Azure AD (Entra ID).
-
-1. Go to <https://portal.azure.com> → **Azure Active Directory** → **App registrations** → **New registration**.
-   - Name: `PigeonPost Store CI`
-   - Supported account types: *Accounts in this organizational directory only*
-2. After creation, note the **Application (client) ID** and **Directory (tenant) ID**.
-3. **Certificates & secrets** → **New client secret** → copy the generated value immediately.
-
-### 4a — Grant Partner Center API access
-
-1. In Partner Center → **Account settings** → **Tenants** → **Associate Azure AD**.
-2. Link your Azure AD tenant.
-3. Back in **Account settings** → **User management** → **Add Azure AD applications**.
-4. Add the `PigeonPost Store CI` app with the **Manager** role.
+**Update `Package.appxmanifest`:**
+```xml
+<Identity
+  Name="HolgerImbery.PigeonPost"
+  Publisher="CN=Holger Imbery, O=Holger Imbery, L=Berlin, C=DE"   <!-- ← paste your exact DN here -->
+  Version="1.5.0.0"
+  ProcessorArchitecture="neutral" />
+```
 
 ---
 
-## 5 — Add GitHub Secrets and Variables
+## Step 3 — Partner Center: create the app listing + get STORE_APP_ID
 
-### Secrets  (Settings → Secrets and variables → Actions → Secrets)
-
-| Secret | Value |
-|--------|-------|
-| `STORE_TENANT_ID` | Azure AD Directory (tenant) ID |
-| `STORE_CLIENT_ID` | Azure AD Application (client) ID |
-| `STORE_CLIENT_SECRET` | Azure AD client secret value |
-| `STORE_APP_ID` | Partner Center App ID (from Step 2) |
-
-### Variables  (Settings → Secrets and variables → Actions → Variables)
-
-| Variable | Description | Default |
-|----------|-------------|---------|
-| `STORE_ENABLED` | Set to `true` to activate MSIX builds | `false` |
-| `STORE_SUBMIT_ENABLED` | Set to `true` to submit to Partner Center | `false` |
-| `WINGET_ENABLED` | Set to `true` to activate Winget manifest update | `false` |
-
-> **Recommended approach:**
-> 1. Set `STORE_ENABLED=true` first; verify the MSIX artefacts are produced on the next release.
-> 2. Submit manually via Partner Center once to establish the app baseline.
-> 3. Only set `STORE_SUBMIT_ENABLED=true` after a successful manual submission.
+1. Open <https://partner.microsoft.com/dashboard/windows/overview>
+2. Click **+ New product** → **App**
+3. Enter name: **PigeonPost** → click **Reserve product name**
+4. After creation, look at the browser URL — it contains your App ID:
+   ```
+   https://partner.microsoft.com/en-us/dashboard/products/<APP_ID>/overview
+   ```
+5. Copy `<APP_ID>` — this is your `STORE_APP_ID` secret
 
 ---
 
-## 6 — First manual submission checklist
+## Step 4 — Azure portal: create an app registration
 
-Before the first automated submission, complete a manual submission in Partner Center:
+> This gives the CI workflow credentials to call the Partner Center API.
 
-- [ ] Upload the `.msixbundle` from a `store-bundle` run.
-- [ ] Fill in Store listing (description, screenshots, category).
-- [ ] Set age rating (IARC questionnaire).
-- [ ] Set pricing (free).
-- [ ] Submit for certification.
-
-After approval the automated `store-submit` job can take over for all future releases.
-
----
-
-## 7 — Visual assets
-
-The `Assets\` folder currently contains **placeholder** 0x0067c0 blue PNGs.
-Replace them with branded artwork before the first Store submission:
-
-| File | Size | Usage |
-|------|------|-------|
-| `Assets\Square44x44Logo.png` | 44 × 44 | Taskbar / start menu small tile |
-| `Assets\Square44x44Logo.targetsize-32_altform-unplated.png` | 32 × 32 | Notification badge |
-| `Assets\Square150x150Logo.png` | 150 × 150 | Start menu medium tile |
-| `Assets\Wide310x150Logo.png` | 310 × 150 | Start menu wide tile |
-| `Assets\StoreLogo.png` | 50 × 50 | Store listing icon |
-| `Assets\SplashScreen.png` | 620 × 300 | App splash screen |
-
-Store certification requires proper branding — generic solid-colour images will be rejected.
+1. Open <https://portal.azure.com/#view/Microsoft_AAD_RegisteredApps/CreateApplicationBlade>
+2. Fill in:
+   - **Name:** `PigeonPost Store CI`
+   - **Supported account types:** *Accounts in this organizational directory only (single tenant)*
+   - **Redirect URI:** leave blank
+3. Click **Register**
+4. On the app overview page, copy:
+   - **Application (client) ID** → this is `STORE_CLIENT_ID`
+   - **Directory (tenant) ID** → this is `STORE_TENANT_ID`
+5. In the left sidebar click **Certificates & secrets** → **Client secrets** → **+ New client secret**
+   - Description: `PigeonPost CI`
+   - Expiry: 24 months
+6. Click **Add** — copy the **Value** column immediately (it is never shown again)
+   → this is `STORE_CLIENT_SECRET`
 
 ---
 
-## 8 — Release flow (after initial setup)
+## Step 5 — Partner Center: grant the Azure AD app access
+
+1. Open <https://partner.microsoft.com/dashboard/account/v3/usermanagement>
+2. Click **Azure AD applications** tab → **+ Add Azure AD application**
+3. Search for `PigeonPost Store CI` → select it → click **Next**
+4. Assign role: **Manager**
+5. Click **Save**
+
+---
+
+## Step 6 — GitHub: add secrets and variables
+
+Open <https://github.com/holgerimbery/PigeonPost/settings/secrets/actions>
+
+Click **New repository secret** for each:
+
+| Secret name | Value |
+|-------------|-------|
+| `STORE_TENANT_ID` | Directory (tenant) ID from Step 4 |
+| `STORE_CLIENT_ID` | Application (client) ID from Step 4 |
+| `STORE_CLIENT_SECRET` | Client secret value from Step 4 |
+| `STORE_APP_ID` | App ID from Step 3 |
+
+Then open <https://github.com/holgerimbery/PigeonPost/settings/variables/actions>
+
+Click **New repository variable** for each:
+
+| Variable name | Value |
+|---------------|-------|
+| `STORE_ENABLED` | `true` |
+| `STORE_SUBMIT_ENABLED` | `true` *(set only after first manual submission passes)* |
+
+---
+
+## Step 7 — Update Package.appxmanifest and commit
+
+After completing Step 2, update the manifest Publisher DN and push:
+
+```bash
+# Edit Package.appxmanifest with the correct Publisher DN, then:
+git add Package.appxmanifest
+git commit -m "chore: set correct Partner Center Publisher DN in manifest"
+git push origin feature/microsoft-store
+```
+
+---
+
+## Step 8 — First manual Store submission
+
+Before enabling `STORE_SUBMIT_ENABLED`, do one manual submission:
+
+1. Push a release tag to trigger `store-bundle` (set `STORE_ENABLED=true`, `STORE_SUBMIT_ENABLED=false`)
+2. Download the `.msixbundle` from the GitHub Release
+3. In Partner Center → your app → **Start your submission**
+4. Upload the `.msixbundle` in the **Packages** section
+5. Complete: Store listing, age rating (IARC), pricing (free), submit
+6. After certification passes → set `STORE_SUBMIT_ENABLED=true` for fully automated future releases
+
+---
+
+## Partner Center: Associate Azure AD tenant (if needed)
+
+If Step 5 shows no Azure AD applications tab:
+
+1. Open <https://partner.microsoft.com/dashboard/account/v3/settings/tenants>
+2. Click **Associate Azure AD tenant**
+3. Sign in with your Azure account and confirm the association
+4. Then repeat Step 5
+
+---
+
+## Release flow (after full setup)
 
 ```bash
 git tag v1.6.0 -m "Release 1.6.0"
