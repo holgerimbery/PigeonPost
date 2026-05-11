@@ -206,21 +206,42 @@ public sealed partial class MainWindow : Window
             LeftClickCommand = ViewModel.ShowWindowCommand,
         };
 
-        // Use Win32 LoadImage instead of new System.Drawing.Icon(path) — the constructor
-        // cannot load modern ICO files that contain PNG-compressed images and throws
-        // Win32Exception (0x80004005) at startup.
-        if (File.Exists(IconPath))
+        _trayIcon.ForceCreate();
+
+        // Set the icon AFTER ForceCreate so the NIM_MODIFY call has a live notification-area entry.
+        // Primary: extract from the running EXE (always present via <ApplicationIcon> embedding).
+        // Fallback: LoadImage from the Assets file (handles PNG-compressed ICO that
+        //           System.Drawing.Icon constructor cannot load).
+        try
+        {
+            var exePath = System.Diagnostics.Process.GetCurrentProcess().MainModule?.FileName;
+            if (exePath != null)
+                _trayNativeIcon = System.Drawing.Icon.ExtractAssociatedIcon(exePath);
+        }
+        catch { /* ExtractAssociatedIcon failed — try file path below */ }
+
+        if (_trayNativeIcon == null && File.Exists(IconPath))
         {
             var hicon = LoadImage(IntPtr.Zero, IconPath, IMAGE_ICON, 0, 0, LR_LOADFROMFILE | LR_DEFAULTSIZE);
             if (hicon != IntPtr.Zero)
             {
                 _trayIconHandle = hicon;
                 _trayNativeIcon = System.Drawing.Icon.FromHandle(hicon);
-                _trayIcon.Icon  = _trayNativeIcon;
             }
         }
 
-        _trayIcon.ForceCreate();
+        if (_trayNativeIcon != null)
+            _trayIcon.Icon = _trayNativeIcon;
+
+        // Diagnostic: log icon loading outcome so we can check $env:TEMP\pigeonpost-debug.txt
+        try
+        {
+            var dbg = Path.Combine(Path.GetTempPath(), "pigeonpost-debug.txt");
+            File.WriteAllText(dbg,
+                $"{DateTimeOffset.Now}  icon={((_trayNativeIcon != null) ? "OK" : "NULL")}  " +
+                $"iconPath={IconPath}  exists={File.Exists(IconPath)}");
+        }
+        catch { }
 
         // Once the visual tree is ready, give the ContextFlyout a XamlRoot so that
         // click events route through the WinUI event system on the correct thread.
