@@ -23,9 +23,9 @@
 #   WINGET_TOKEN  — fine-grained PAT with Contents + PRs read/write on your
 #                   fork of microsoft/winget-pkgs
 #
-# Required GitHub Variable (Settings → Secrets and variables → Actions):
-#   WINGET_ENABLED — set to 'true' to activate the job
-#                    (secrets cannot be used in job-level if conditions)
+# Required GitHub Variables (Settings → Secrets and variables → Actions):
+#   WINGET_ENABLED  — set to 'true' to activate the winget manifest update job
+#                     (secrets cannot be used in job-level if conditions)
 # ─────────────────────────────────────────────────────────────────────────────
 #
 # How to release:
