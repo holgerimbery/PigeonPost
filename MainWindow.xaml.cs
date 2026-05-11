@@ -49,7 +49,6 @@ public sealed partial class MainWindow : Window
     private IntPtr _hIconBig   = IntPtr.Zero;
     private IntPtr _hIconSmall = IntPtr.Zero;
     private bool   _windowIconApplied;
-
     private MenuFlyoutItem? _pauseMenuItem;
     private bool _isQuitting;
     private bool _sizeClamping;
