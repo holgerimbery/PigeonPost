@@ -43,6 +43,7 @@ public sealed partial class MainWindow : Window
 
     private TaskbarIcon? _trayIcon;
     private System.Drawing.Icon? _trayNativeIcon;   // kept alive for the process lifetime
+    private IntPtr _trayIconHandle = IntPtr.Zero;   // raw HICON — must be destroyed on quit
     private MenuFlyoutItem? _pauseMenuItem;
     private bool _isQuitting;
     private bool _sizeClamping;
@@ -167,6 +168,18 @@ public sealed partial class MainWindow : Window
     [System.Runtime.InteropServices.DllImport("user32.dll")]
     private static extern uint GetDpiForWindow(IntPtr hWnd);
 
+    // LoadImage handles modern ICO files that contain PNG-compressed images,
+    // which System.Drawing.Icon constructor cannot load (throws Win32Exception 0x80004005).
+    [System.Runtime.InteropServices.DllImport("user32.dll", CharSet = System.Runtime.InteropServices.CharSet.Unicode, SetLastError = true)]
+    private static extern IntPtr LoadImage(IntPtr hinst, string lpszName, uint uType, int cxDesired, int cyDesired, uint fuLoad);
+
+    [System.Runtime.InteropServices.DllImport("user32.dll")]
+    private static extern bool DestroyIcon(IntPtr hIcon);
+
+    private const uint IMAGE_ICON     = 1;
+    private const uint LR_LOADFROMFILE = 0x00000010;
+    private const uint LR_DEFAULTSIZE  = 0x00000040;
+
     private double GetScaleFactor()
     {
         try
@@ -193,13 +206,18 @@ public sealed partial class MainWindow : Window
             LeftClickCommand = ViewModel.ShowWindowCommand,
         };
 
-        // Load the icon synchronously via Win32 HICON (System.Drawing.Icon).
-        // BitmapImage/ImageSource loads asynchronously and is not yet ready when
-        // ForceCreate() runs, which causes the tray and taskbar to show a blank icon.
+        // Use Win32 LoadImage instead of new System.Drawing.Icon(path) — the constructor
+        // cannot load modern ICO files that contain PNG-compressed images and throws
+        // Win32Exception (0x80004005) at startup.
         if (File.Exists(IconPath))
         {
-            _trayNativeIcon   = new System.Drawing.Icon(IconPath);
-            _trayIcon.Icon    = _trayNativeIcon;
+            var hicon = LoadImage(IntPtr.Zero, IconPath, IMAGE_ICON, 0, 0, LR_LOADFROMFILE | LR_DEFAULTSIZE);
+            if (hicon != IntPtr.Zero)
+            {
+                _trayIconHandle = hicon;
+                _trayNativeIcon = System.Drawing.Icon.FromHandle(hicon);
+                _trayIcon.Icon  = _trayNativeIcon;
+            }
         }
 
         _trayIcon.ForceCreate();
@@ -254,6 +272,7 @@ public sealed partial class MainWindow : Window
             {
                 _trayIcon?.Dispose();
                 _trayNativeIcon?.Dispose();
+                if (_trayIconHandle != IntPtr.Zero) { DestroyIcon(_trayIconHandle); _trayIconHandle = IntPtr.Zero; }
                 Environment.Exit(0);
             }),
         });
