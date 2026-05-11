@@ -43,6 +43,11 @@
     <WindowsPackageType>MSIX</WindowsPackageType>
     <EnableMsixTooling>true</EnableMsixTooling>
     <DefineConstants>$(DefineConstants);STORE_BUILD</DefineConstants>
+    <!--
+      Disable symbol package generation on CI runners (no Visual Studio / mspdbcmf.exe).
+      Without this the WinAppSdkCheckFastlinkPdb task fails with MSB6011.
+    -->
+    <AppxSymbolPackageEnabled>false</AppxSymbolPackageEnabled>
   </PropertyGroup>
 
   <!-- ── Winget / GitHub Releases build (default) ──────────────────────────── -->
@@ -68,6 +73,15 @@
   <!-- Velopack is only needed for the Winget/GitHub Releases build. -->
   <ItemGroup Condition="'$(StorePublish)' != 'true'">
     <PackageReference Include="Velopack" Version="0.0.1298" />
+  </ItemGroup>
+
+  <!--
+    System.Security.Permissions is required by Microsoft.Windows.SDK.BuildTools.MSIX
+    packaging tasks (WinAppSdkCreateAppStoreContainer) on .NET 9.
+    Scoped to Store builds only to avoid pulling it into the Winget EXE.
+  -->
+  <ItemGroup Condition="'$(StorePublish)' == 'true'">
+    <PackageReference Include="System.Security.Permissions" Version="8.0.0" />
   </ItemGroup>
 
   <ItemGroup>
