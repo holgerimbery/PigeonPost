@@ -4,10 +4,8 @@
   Used only when building with /p:StorePublish=true (WindowsPackageType=MSIX).
 
   ── Publisher identity ────────────────────────────────────────────────────────
-  For local sideload testing  : Publisher="CN=Holger Imbery"
-                                (self-signed cert, common name must match)
-  For Microsoft Store upload  : Partner Center provides the exact Publisher DN.
-                                Update Identity/@Publisher before submitting.
+  For Microsoft Store upload  : CN=B4E50DE5-2EC8-4353-932F-B4B5CF771CDD
+                                (Partner Center Windows Publisher ID)
                                 The CI workflow patches the Version attribute
                                 automatically on each release tag.
 
@@ -35,7 +33,7 @@
   -->
   <Identity
     Name="HolgerImbery.PigeonPost"
-    Publisher="CN=Holger Imbery"
+    Publisher="CN=B4E50DE5-2EC8-4353-932F-B4B5CF771CDD"
     Version="1.5.0.0"
     ProcessorArchitecture="neutral" />
 
