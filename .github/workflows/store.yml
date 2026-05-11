@@ -25,7 +25,7 @@
 #   store-build   (matrix: x64 + ARM64)
 #     • Updates Package.appxmanifest Version to match the release tag
 #     • Builds MSIX with /p:StorePublish=true /p:Platform=<arch>
-#     • Uploads the per-arch .msix to GitHub Release + as workflow artifact
+#     • Uploads the per-arch .msix as workflow artifact (not to GitHub Release)
 #
 #   store-bundle  (needs store-build)
 #     • Downloads both arch artifacts
@@ -144,12 +144,6 @@ jobs:
           echo "name=$name"                         >> $env:GITHUB_OUTPUT
           Write-Host "MSIX: $name"
 
-      # ── Upload to GitHub Release ──
-      - name: Upload MSIX to release
-        uses: softprops/action-gh-release@v2
-        with:
-          files: ${{ steps.msix.outputs.path }}
-
       # ── Upload as workflow artifact (consumed by store-bundle) ──
       - name: Upload MSIX artifact
         uses: actions/upload-artifact@v4
@@ -208,11 +202,6 @@ jobs:
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           echo "path=${{ github.workspace }}\$bundleName" >> $env:GITHUB_OUTPUT
           echo "name=$bundleName"                         >> $env:GITHUB_OUTPUT
-
-      - name: Upload bundle to release
-        uses: softprops/action-gh-release@v2
-        with:
-          files: ${{ steps.bundle.outputs.path }}
 
       - name: Upload bundle artifact
         uses: actions/upload-artifact@v4
