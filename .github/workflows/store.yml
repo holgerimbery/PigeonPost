@@ -162,6 +162,7 @@ jobs:
   store-bundle:
     name: Bundle MSIX
     needs: store-build
+    if: ${{ vars.STORE_ENABLED == 'true' }}
     runs-on: windows-latest
 
     steps:
