@@ -24,7 +24,6 @@
 #                   fork of microsoft/winget-pkgs
 #
 # Required GitHub Variables (Settings → Secrets and variables → Actions):
-#   RELEASE_ENABLED — set to 'true' to activate the Velopack build + GitHub Release upload
 #   WINGET_ENABLED  — set to 'true' to activate the winget manifest update job
 #                     (secrets cannot be used in job-level if conditions)
 # ─────────────────────────────────────────────────────────────────────────────
@@ -44,7 +43,6 @@ jobs:
   build:
     name: Build & release (${{ matrix.channel }})
     runs-on: windows-latest
-    if: ${{ vars.RELEASE_ENABLED == 'true' }}
     permissions:
       contents: write   # required to create/update the GitHub Release and upload assets
 
