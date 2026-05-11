@@ -154,6 +154,10 @@ public sealed partial class MainWindow : Window
     private void OnAppWindowChanged(Microsoft.UI.Windowing.AppWindow sender,
                                     Microsoft.UI.Windowing.AppWindowChangedEventArgs args)
     {
+        // Re-apply icons when the window becomes visible (e.g. restored from tray).
+        if (args.DidVisibilityChange && sender.IsVisible)
+            DispatcherQueue?.TryEnqueue(Microsoft.UI.Dispatching.DispatcherQueuePriority.Low, ApplyWindowIcons);
+
         if (!args.DidSizeChange || _sizeClamping) return;
 
         var scale = GetScaleFactor();
@@ -309,7 +313,9 @@ public sealed partial class MainWindow : Window
         if (_windowIconApplied) return;
         _windowIconApplied = true;
         Activated -= OnWindowFirstActivated;
-        ApplyWindowIcons();
+        // Use Low priority so the dispatcher yields first, giving Explorer time to
+        // create the taskbar button before we stamp the class icon onto it.
+        DispatcherQueue?.TryEnqueue(Microsoft.UI.Dispatching.DispatcherQueuePriority.Low, ApplyWindowIcons);
     }
 
     /// <summary>
