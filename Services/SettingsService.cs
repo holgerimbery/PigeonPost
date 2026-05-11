@@ -2,9 +2,12 @@
 // Licensed under the MIT License. See LICENSE in the project root for license information.
 
 using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Security.Cryptography;
+using System.Text;
 using System.Text.Json;
+using PigeonPost.Models;
 
 namespace PigeonPost.Services;
 
@@ -40,6 +43,13 @@ public class AppSettings
     /// Defaults to <c>false</c> so normal users only receive stable releases.
     /// </summary>
     public bool IncludeBetaUpdates { get; set; } = false;
+
+    /// <summary>
+    /// Remote PigeonPost peers this PC can push clipboard content and files to.
+    /// Bearer tokens are encrypted with Windows DPAPI at rest; the plaintext
+    /// <see cref="PeerEntry.BearerToken"/> is populated at runtime after loading.
+    /// </summary>
+    public List<PeerEntry> Peers { get; set; } = [];
 }
 
 /// <summary>
@@ -85,6 +95,14 @@ public static class SettingsService
         if (string.IsNullOrEmpty(settings.AuthToken))
             settings.AuthToken = GenerateToken();
 
+        // Decrypt DPAPI-protected peer bearer tokens at load time so the rest of
+        // the app can use the plaintext BearerToken field without touching disk.
+        foreach (var peer in settings.Peers)
+        {
+            if (!string.IsNullOrEmpty(peer.BearerTokenProtected))
+                peer.BearerToken = DecryptToken(peer.BearerTokenProtected) ?? "";
+        }
+
         return settings;
     }
 
@@ -100,9 +118,49 @@ public static class SettingsService
     {
         try
         {
+            // Encrypt each peer's plaintext BearerToken into BearerTokenProtected with
+            // Windows DPAPI (CurrentUser scope) before writing to disk so tokens are
+            // never stored in plaintext.
+            foreach (var peer in Current.Peers)
+            {
+                if (!string.IsNullOrEmpty(peer.BearerToken))
+                    peer.BearerTokenProtected = EncryptToken(peer.BearerToken);
+                else
+                    peer.BearerTokenProtected = ""; // clear stale encrypted value
+            }
+
             Directory.CreateDirectory(SettingsDir);
             File.WriteAllText(SettingsFile, JsonSerializer.Serialize(Current, WriteOptions));
         }
         catch { /* best-effort save */ }
+    }
+
+    // ----------------------------------------------------------------- DPAPI helpers
+
+    /// <summary>
+    /// Encrypts <paramref name="token"/> with Windows DPAPI (CurrentUser scope)
+    /// and returns the result as a Base64 string.
+    /// </summary>
+    private static string EncryptToken(string token)
+    {
+        var plain     = Encoding.UTF8.GetBytes(token);
+        var encrypted = ProtectedData.Protect(plain, null, DataProtectionScope.CurrentUser);
+        return Convert.ToBase64String(encrypted);
+    }
+
+    /// <summary>
+    /// Decrypts a Base64-encoded DPAPI blob back to the plaintext token.
+    /// Returns <c>null</c> if decryption fails (e.g. token was encrypted by a
+    /// different Windows user account, or the data is corrupt).
+    /// </summary>
+    private static string? DecryptToken(string base64)
+    {
+        try
+        {
+            var encrypted = Convert.FromBase64String(base64);
+            var plain     = ProtectedData.Unprotect(encrypted, null, DataProtectionScope.CurrentUser);
+            return Encoding.UTF8.GetString(plain);
+        }
+        catch { return null; }
     }
 }

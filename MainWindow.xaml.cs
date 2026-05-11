@@ -53,7 +53,8 @@ public sealed partial class MainWindow : Window
     private bool _isQuitting;
     private bool _sizeClamping;
     private ActivityLogWindow? _activityLogWindow;
-    private SettingsWindow? _settingsWindow;
+    private SettingsWindow?    _settingsWindow;
+    private PeersWindow?       _peersWindow;
 
     // Maximum window dimensions in logical device-independent pixels.
     // Converted to physical pixels at runtime by multiplying with the DPI scale factor.
@@ -501,6 +502,24 @@ public sealed partial class MainWindow : Window
 
         _activityLogWindow.AppWindow?.Show();
         _activityLogWindow.Activate();
+    }
+
+    // ---------------------------------------------------------------- peers
+
+    /// <summary>
+    /// Opens (or re-activates) the Peers window.
+    /// A single instance is kept alive for the session.
+    /// </summary>
+    private void PeersButton_Click(object sender, RoutedEventArgs e)
+    {
+        if (_peersWindow == null)
+        {
+            _peersWindow = new PeersWindow(App.State, App.Mdns!, App.Sender!);
+            _peersWindow.ApplyTheme(RootGrid.RequestedTheme);
+        }
+
+        _peersWindow.AppWindow?.Show();
+        _peersWindow.Activate();
     }
 
     // ---------------------------------------------------------------- settings

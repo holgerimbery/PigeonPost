@@ -46,6 +46,9 @@ public partial class App : Application
     /// <summary>Monitors network address changes and triggers listener restarts.</summary>
     public static IpMonitorService? IpMonitor { get; private set; }
 
+    /// <summary>Sends clipboard text and files to remote PigeonPost peers.</summary>
+    public static PeerSendService? Sender { get; private set; }
+
     private MainWindow? _window;
 
     public App()
@@ -114,6 +117,9 @@ public partial class App : Application
         // Advertise the server via Bonjour/mDNS so PigeonPostCompanion can auto-discover it.
         Mdns = new MdnsService(State);
         Mdns.Start();
+
+        // HTTP client for pushing clipboard / files to remote PigeonPost peers.
+        Sender = new PeerSendService(State);
 
         // Start the IP monitor; restart the listener and notify the user on change.
         IpMonitor = new IpMonitorService();

@@ -68,6 +68,7 @@
     <PackageReference Include="CommunityToolkit.Mvvm" Version="8.4.2" />
     <PackageReference Include="H.NotifyIcon.WinUI" Version="2.3.2" />
     <PackageReference Include="System.Drawing.Common" Version="9.0.1" />
+    <PackageReference Include="System.Security.Cryptography.ProtectedData" Version="9.0.0" />
   </ItemGroup>
 
   <!-- Velopack is only needed for the Winget/GitHub Releases build. -->
