@@ -1,7 +1,7 @@
 # PigeonPost
 
 <p align="center">
-  <img src="Assets/banner.png" alt="PigeonPost" width="220"/>
+  <img src="Assets/new_banner.png" alt="PigeonPost" width="220"/>
 </p>
 
 <p align="center">
