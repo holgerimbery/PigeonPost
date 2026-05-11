@@ -116,6 +116,7 @@ jobs:
             --packVersion $env:PACK_VERSION `
             --packDir  publish-${{ matrix.rid }} `
             --mainExe  PigeonPost.exe `
+            --icon     publish-${{ matrix.rid }}/Assets/PigeonPost.ico `
             --channel  ${{ matrix.channel }} `
             --outputDir releases-${{ matrix.channel }}
 
