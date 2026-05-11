@@ -168,17 +168,23 @@ public sealed partial class MainWindow : Window
     [System.Runtime.InteropServices.DllImport("user32.dll")]
     private static extern uint GetDpiForWindow(IntPtr hWnd);
 
-    // LoadImage handles modern ICO files that contain PNG-compressed images,
-    // which System.Drawing.Icon constructor cannot load (throws Win32Exception 0x80004005).
     [System.Runtime.InteropServices.DllImport("user32.dll", CharSet = System.Runtime.InteropServices.CharSet.Unicode, SetLastError = true)]
     private static extern IntPtr LoadImage(IntPtr hinst, string lpszName, uint uType, int cxDesired, int cyDesired, uint fuLoad);
 
     [System.Runtime.InteropServices.DllImport("user32.dll")]
     private static extern bool DestroyIcon(IntPtr hIcon);
 
-    private const uint IMAGE_ICON     = 1;
+    // WM_SETICON sets both the title-bar icon (ICON_BIG) and the taskbar-button icon (ICON_SMALL).
+    // AppWindow.SetIcon() only sets ICON_BIG, leaving the taskbar button with the generic window icon.
+    [System.Runtime.InteropServices.DllImport("user32.dll")]
+    private static extern IntPtr SendMessage(IntPtr hWnd, uint msg, IntPtr wParam, IntPtr lParam);
+
+    private const uint IMAGE_ICON      = 1;
     private const uint LR_LOADFROMFILE = 0x00000010;
     private const uint LR_DEFAULTSIZE  = 0x00000040;
+    private const uint WM_SETICON      = 0x0080;
+    private const int  ICON_SMALL      = 0;
+    private const int  ICON_BIG        = 1;
 
     private double GetScaleFactor()
     {
@@ -202,23 +208,20 @@ public sealed partial class MainWindow : Window
         {
             ToolTipText      = "PigeonPost — Running",
             ContextFlyout    = BuildTrayMenu(),
-            // Left-click on the tray icon opens the window.
             LeftClickCommand = ViewModel.ShowWindowCommand,
         };
 
         _trayIcon.ForceCreate();
 
-        // Set the icon AFTER ForceCreate so the NIM_MODIFY call has a live notification-area entry.
-        // Primary: extract from the running EXE (always present via <ApplicationIcon> embedding).
-        // Fallback: LoadImage from the Assets file (handles PNG-compressed ICO that
-        //           System.Drawing.Icon constructor cannot load).
+        // Load icon: primary = extract from EXE resources (always present via <ApplicationIcon>).
+        // Fallback = LoadImage from Assets file (handles PNG-compressed ICO frames).
         try
         {
             var exePath = System.Diagnostics.Process.GetCurrentProcess().MainModule?.FileName;
             if (exePath != null)
                 _trayNativeIcon = System.Drawing.Icon.ExtractAssociatedIcon(exePath);
         }
-        catch { /* ExtractAssociatedIcon failed — try file path below */ }
+        catch { }
 
         if (_trayNativeIcon == null && File.Exists(IconPath))
         {
@@ -231,20 +234,33 @@ public sealed partial class MainWindow : Window
         }
 
         if (_trayNativeIcon != null)
+        {
             _trayIcon.Icon = _trayNativeIcon;
 
-        // Diagnostic: log icon loading outcome so we can check $env:TEMP\pigeonpost-debug.txt
+            // AppWindow.SetIcon() only sets ICON_BIG (title bar / Alt+Tab).
+            // The taskbar button uses ICON_SMALL — send WM_SETICON for both so the
+            // taskbar button shows the pigeon icon instead of a generic window icon.
+            try
+            {
+                var hwnd = WinRT.Interop.WindowNative.GetWindowHandle(this);
+                var hicon = _trayNativeIcon.Handle;
+                SendMessage(hwnd, WM_SETICON, (IntPtr)ICON_BIG,   hicon);
+                SendMessage(hwnd, WM_SETICON, (IntPtr)ICON_SMALL,  hicon);
+            }
+            catch { }
+        }
+
+        // Diagnostic log — check %TEMP%\pigeonpost-debug.txt to verify icon loading.
         try
         {
             var dbg = Path.Combine(Path.GetTempPath(), "pigeonpost-debug.txt");
             File.WriteAllText(dbg,
                 $"{DateTimeOffset.Now}  icon={((_trayNativeIcon != null) ? "OK" : "NULL")}  " +
-                $"iconPath={IconPath}  exists={File.Exists(IconPath)}");
+                $"iconPath={IconPath}  exists={File.Exists(IconPath)}  " +
+                $"hicon={_trayNativeIcon?.Handle}");
         }
         catch { }
 
-        // Once the visual tree is ready, give the ContextFlyout a XamlRoot so that
-        // click events route through the WinUI event system on the correct thread.
         RootGrid.Loaded += (_, _) =>
         {
             if (_trayIcon?.ContextFlyout != null)
