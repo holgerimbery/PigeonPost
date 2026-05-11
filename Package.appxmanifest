@@ -1,0 +1,110 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Package manifest for PigeonPost — Microsoft Store / MSIX build.
+  Used only when building with /p:StorePublish=true (WindowsPackageType=MSIX).
+
+  ── Publisher identity ────────────────────────────────────────────────────────
+  For local sideload testing  : Publisher="CN=Holger Imbery"
+                                (self-signed cert, common name must match)
+  For Microsoft Store upload  : Partner Center provides the exact Publisher DN.
+                                Update Identity/@Publisher before submitting.
+                                The CI workflow patches the Version attribute
+                                automatically on each release tag.
+
+  ── Capabilities ─────────────────────────────────────────────────────────────
+  privateNetworkClientServer  — required for the built-in HttpListener server.
+  runFullTrust                — required for system-tray icon, file I/O, and
+                                all Win32 APIs used in this app.
+
+  ── StartupTask ──────────────────────────────────────────────────────────────
+  TaskId "PigeonPostStartupTask" must match AutostartService.TaskId exactly.
+  The task is declared Enabled="false" so it is OFF by default; the user
+  enables it through Settings → Start with Windows.
+-->
+<Package
+  xmlns="http://schemas.microsoft.com/appx/manifest/foundation/windows10"
+  xmlns:mp="http://schemas.microsoft.com/appx/2014/phone/manifest"
+  xmlns:uap="http://schemas.microsoft.com/appx/manifest/uap/windows10"
+  xmlns:uap5="http://schemas.microsoft.com/appx/manifest/uap/windows10/5"
+  xmlns:rescap="http://schemas.microsoft.com/appx/manifest/foundation/windows10/restrictedcapabilities"
+  IgnorableNamespaces="mp uap uap5 rescap">
+
+  <!--
+    Version is patched by the CI workflow (store.yml) before each build.
+    Must be in 4-part numeric format: Major.Minor.Build.Revision
+  -->
+  <Identity
+    Name="HolgerImbery.PigeonPost"
+    Publisher="CN=Holger Imbery"
+    Version="1.5.0.0"
+    ProcessorArchitecture="neutral" />
+
+  <mp:PhoneIdentity
+    PhoneProductId="a1b2c3d4-e5f6-7890-abcd-ef1234567890"
+    PhonePublisherId="00000000-0000-0000-0000-000000000000"/>
+
+  <Properties>
+    <DisplayName>PigeonPost</DisplayName>
+    <PublisherDisplayName>Holger Imbery</PublisherDisplayName>
+    <Logo>Assets\StoreLogo.png</Logo>
+  </Properties>
+
+  <Dependencies>
+    <TargetDeviceFamily
+      Name="Windows.Desktop"
+      MinVersion="10.0.17763.0"
+      MaxVersionTested="10.0.26100.0" />
+  </Dependencies>
+
+  <Resources>
+    <Resource Language="en-US"/>
+  </Resources>
+
+  <Applications>
+    <Application
+      Id="App"
+      Executable="PigeonPost.exe"
+      EntryPoint="$targetentrypoint$">
+
+      <uap:VisualElements
+        DisplayName="PigeonPost"
+        Description="File and clipboard transfer between Windows PC and iOS devices"
+        BackgroundColor="transparent"
+        Square150x150Logo="Assets\Square150x150Logo.png"
+        Square44x44Logo="Assets\Square44x44Logo.png">
+        <uap:DefaultTile Wide310x150Logo="Assets\Wide310x150Logo.png"/>
+        <uap:SplashScreen Image="Assets\SplashScreen.png"/>
+      </uap:VisualElements>
+
+      <Extensions>
+        <!--
+          Startup Task — allows "Start with Windows" via AutostartService.
+          TaskId must match AutostartService.TaskId = "PigeonPostStartupTask".
+          EntryPoint="Windows.FullTrustApplication" is correct for packaged
+          desktop (Win32/WinUI 3) apps using the runFullTrust capability.
+        -->
+        <uap5:Extension
+          Category="windows.startupTask"
+          Executable="PigeonPost.exe"
+          EntryPoint="Windows.FullTrustApplication">
+          <uap5:StartupTask
+            TaskId="PigeonPostStartupTask"
+            Enabled="false"
+            DisplayName="PigeonPost"/>
+        </uap5:Extension>
+      </Extensions>
+    </Application>
+  </Applications>
+
+  <Capabilities>
+    <!-- Required for the built-in HttpListener server (binds to LAN addresses). -->
+    <Capability Name="privateNetworkClientServer"/>
+    <!--
+      runFullTrust grants unrestricted Win32 access:
+      system-tray icon, file I/O to arbitrary paths, mDNS socket, registry (not used
+      in Store build — kept for parity), and any other Win32 API.
+    -->
+    <rescap:Capability Name="runFullTrust"/>
+  </Capabilities>
+
+</Package>

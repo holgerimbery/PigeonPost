@@ -8,6 +8,9 @@ using System.Threading.Tasks;
 using Microsoft.UI.Xaml;
 using Microsoft.Windows.AppNotifications;
 using Microsoft.Windows.AppNotifications.Builder;
+#if STORE_BUILD
+using Microsoft.Windows.AppLifecycle;
+#endif
 using PigeonPost.Models;
 using PigeonPost.Services;
 using PigeonPost.ViewModels;
@@ -63,22 +66,30 @@ public partial class App : Application
         InitializeComponent();
 
         // Register for Windows toast notifications.
-        // For unpackaged apps this uses the process AUMID; must be called before any
-        // AppNotificationManager.Show() call. Failures are silently swallowed so a
-        // machine policy or consent screen can't prevent the app from starting.
+        // For unpackaged apps (Winget build) this uses the process AUMID; must be called
+        // before any AppNotificationManager.Show() call.
+        // For packaged apps (Store build) the AUMID comes from the package manifest; the
+        // call is still valid and recommended to initialise the notification pipeline.
+        // Failures are silently swallowed so a machine policy can't prevent app startup.
         try { AppNotificationManager.Default.Register(); }
         catch { /* notifications unavailable — continue without them */ }
     }
 
     protected override void OnLaunched(LaunchActivatedEventArgs args)
     {
+#if !STORE_BUILD
         // Keep the registry path current if the EXE was moved or updated.
         AutostartService.RefreshPathIfEnabled();
 
         // Detect whether Windows launched us at login (via the registry Run entry).
-        // If so, start tray-only without showing the main window.
         var startMinimised = Environment.GetCommandLineArgs()
             .Any(a => a.Equals("--autostart", StringComparison.OrdinalIgnoreCase));
+#else
+        // For Store/MSIX builds the StartupTask launches the packaged EXE directly.
+        // Detect this via the activation kind rather than command-line arguments.
+        var activatedArgs  = AppInstance.GetCurrent().GetActivatedEventArgs();
+        var startMinimised = activatedArgs?.Kind == ExtendedActivationKind.StartupTask;
+#endif
 
         // Create and show the window first so its DispatcherQueue exists before
         // the listener is started (clipboard operations need it).
@@ -111,14 +122,19 @@ public partial class App : Application
         IpMonitor.Start();
 
         // Check for updates at startup, then every 24 hours while the app is running.
+        // Store builds: updates are handled by the Microsoft Store — skip entirely.
+#if !STORE_BUILD
         _ = CheckForUpdatesAsync();
         StartPeriodicUpdateCheck();
+#endif
     }
 
     /// <summary>
     /// Checks GitHub Releases for a newer version and shows the update banner if found.
     /// Runs on a thread-pool thread; never throws.
+    /// Only compiled for the Winget/Velopack build — Store builds skip this entirely.
     /// </summary>
+#if !STORE_BUILD
     private static async Task CheckForUpdatesAsync()
     {
         var update = await UpdateService.CheckForUpdatesAsync().ConfigureAwait(false);
@@ -142,6 +158,7 @@ public partial class App : Application
         timer.Tick += (_, _) => _ = CheckForUpdatesAsync();
         timer.Start();
     }
+#endif
 
     /// <summary>
     /// Called on a thread-pool thread when the network state changes.

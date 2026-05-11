@@ -115,22 +115,31 @@
                            Fill="{ThemeResource DividerStrokeColorDefaultBrush}" Opacity="0.4"/>
 
                 <!-- ── Updates ──────────────────────────────────────── -->
-                <TextBlock Text="Updates" FontWeight="SemiBold" FontSize="14"
-                           Foreground="{ThemeResource TextFillColorPrimaryBrush}"/>
+                <!--
+                    UpdatesSection is hidden at runtime in the Store/MSIX build
+                    (SettingsWindow.xaml.cs constructor, #if STORE_BUILD guard).
+                    Updates are managed by the Microsoft Store in that channel.
+                -->
+                <StackPanel x:Name="UpdatesSection" Spacing="20">
 
-                <ToggleSwitch x:Name="IncludeBetaSwitch"
-                              Header="Include beta releases"
-                              OffContent="" OnContent=""
-                              MinWidth="0"/>
+                    <TextBlock Text="Updates" FontWeight="SemiBold" FontSize="14"
+                               Foreground="{ThemeResource TextFillColorPrimaryBrush}"/>
 
-                <StackPanel Spacing="8">
-                    <Button x:Name="CheckUpdateButton"
-                            Content="Check for Updates"
-                            Click="CheckUpdateButton_Click"/>
-                    <TextBlock x:Name="UpdateStatusText"
-                               FontSize="12" Opacity="0.8"
-                               TextWrapping="Wrap"
-                               Visibility="Collapsed"/>
+                    <ToggleSwitch x:Name="IncludeBetaSwitch"
+                                  Header="Include beta releases"
+                                  OffContent="" OnContent=""
+                                  MinWidth="0"/>
+
+                    <StackPanel Spacing="8">
+                        <Button x:Name="CheckUpdateButton"
+                                Content="Check for Updates"
+                                Click="CheckUpdateButton_Click"/>
+                        <TextBlock x:Name="UpdateStatusText"
+                                   FontSize="12" Opacity="0.8"
+                                   TextWrapping="Wrap"
+                                   Visibility="Collapsed"/>
+                    </StackPanel>
+
                 </StackPanel>
 
             </StackPanel>

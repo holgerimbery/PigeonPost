@@ -1,6 +1,11 @@
 // Copyright (c) 2026 Holger Imbery. All rights reserved.
 // Licensed under the MIT License. See LICENSE in the project root for license information.
 
+// UpdateService uses Velopack which is not referenced in the Store build.
+// The entire service is excluded at compile-time for Store builds; updates
+// are managed by the Microsoft Store in that distribution channel.
+#if !STORE_BUILD
+
 using System;
 using System.Threading.Tasks;
 using Velopack;
@@ -16,6 +21,11 @@ namespace PigeonPost.Services;
 /// build (i.e. not installed via the Velopack Setup.exe), so local dev workflows
 /// are unaffected. In production the check happens once on startup; the result is
 /// surfaced to the user as a dismissible banner in <c>MainWindow</c>.
+/// </para>
+///
+/// <para>
+/// <b>Store build:</b> this entire file is excluded — the Microsoft Store manages
+/// updates for that distribution channel.
 /// </para>
 /// </summary>
 public static class UpdateService
@@ -80,3 +90,5 @@ public static class UpdateService
     private static UpdateManager CreateManager(bool prerelease = false) =>
         new(new GithubSource(GitHubRepo, null, prerelease: prerelease));
 }
+
+#endif // !STORE_BUILD

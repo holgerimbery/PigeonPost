@@ -4,7 +4,9 @@
 using System.Threading;
 using Microsoft.UI.Dispatching;
 using Microsoft.UI.Xaml;
+#if !STORE_BUILD
 using Velopack;
+#endif
 using WinRT;
 
 namespace PigeonPost;
@@ -14,24 +16,30 @@ namespace PigeonPost;
 ///
 /// <para>
 /// The SDK normally generates a <c>Program.cs</c> automatically; we suppress it with
-/// <c>DISABLE_XAML_GENERATED_MAIN</c> so we can place <see cref="VelopackApp.Build().Run()"/>
-/// as the very first call — a hard requirement of Velopack's update framework.
+/// <c>DISABLE_XAML_GENERATED_MAIN</c> so we can control startup for both build modes:
+/// <list type="bullet">
+///   <item><description>
+///     <b>Winget/Velopack build:</b> <see cref="VelopackApp.Build().Run()"/> MUST be the
+///     very first call — a hard requirement of Velopack's update framework.
+///   </description></item>
+///   <item><description>
+///     <b>Store/MSIX build:</b> No Velopack; startup proceeds directly to WinUI.
+///     StartupTask activation is detected in <c>App.OnLaunched</c>.
+///   </description></item>
+/// </list>
 /// </para>
-///
-/// The rest of the method replicates what the generated main would do:
-///   1. Initialise COM wrappers (required by WinRT interop).
-///   2. Start the WinUI application loop with a <see cref="DispatcherQueueSynchronizationContext"/>
-///      so <c>await</c> continuations run on the UI thread.
 /// </summary>
 public static class Program
 {
     [STAThread]
     static void Main(string[] args)
     {
-        // ── Velopack bootstrap ────────────────────────────────────────────────
+#if !STORE_BUILD
+        // ── Velopack bootstrap (Winget build only) ────────────────────────────
         // MUST be the very first call. Handles install/uninstall hooks, shortcut
         // creation, and passes control back here immediately during normal startup.
         VelopackApp.Build().Run();
+#endif
 
         // ── WinUI 3 startup (mirrors the SDK-generated main) ─────────────────
         ComWrappersSupport.InitializeComWrappers();

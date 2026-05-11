@@ -1,5 +1,6 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
+  <!-- ── Shared properties (both build modes) ──────────────────────────────── -->
   <PropertyGroup>
     <OutputType>WinExe</OutputType>
     <TargetFramework>net9.0-windows10.0.19041.0</TargetFramework>
@@ -15,30 +16,46 @@
     <Platforms>x64;arm64</Platforms>
     <RuntimeIdentifiers>win-x64;win-arm64</RuntimeIdentifiers>
     <UseWinUI>true</UseWinUI>
-    <WindowsPackageType>None</WindowsPackageType>
-    <!--
-      EnableMsixTooling must be FALSE for normal (unpackaged) builds.
-      It is overridden to TRUE only during single-file publish via the command-line flag
-      /p:EnableMsixTooling=true, which is required for resources.pri embedding.
-      Leaving it TRUE here breaks unpackaged debug/run builds (XAML resources.pri mismatch).
-    -->
-    <EnableMsixTooling>false</EnableMsixTooling>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <LangVersion>latest</LangVersion>
     <SupportedOSPlatformVersion>10.0.17763.0</SupportedOSPlatformVersion>
     <NoWarn>$(NoWarn);CA1416</NoWarn>
-    <!-- Embeds the ICO into the EXE so Explorer and Alt+Tab show the pigeon icon. -->
     <ApplicationIcon>Assets\PigeonPost.ico</ApplicationIcon>
     <!--
-      DISABLE_XAML_GENERATED_MAIN suppresses the SDK-generated Program.cs so that our
-      own Program.cs (which calls VelopackApp.Build().Run() first) is used instead.
-      This is required by Velopack: the bootstrap call must be the very first line
-      executed before any WinUI or COM initialisation.
+      We own Program.cs in both build modes:
+      - Winget/Velopack: bootstrap call must be the very first line executed.
+      - Store/MSIX: we still control startup to detect StartupTask activation.
+      DISABLE_XAML_GENERATED_MAIN suppresses the SDK-generated Program.cs in both cases.
     -->
     <DefineConstants>$(DefineConstants);DISABLE_XAML_GENERATED_MAIN</DefineConstants>
   </PropertyGroup>
 
+  <!-- ── Store / MSIX build  (pass /p:StorePublish=true) ───────────────────── -->
+  <!--
+    Activates MSIX packaging, enables MSIX tooling, and defines STORE_BUILD so
+    #if STORE_BUILD / #if !STORE_BUILD guards in C# toggle the right code paths:
+      - UpdateService / Velopack update flow  → disabled
+      - AutostartService                      → uses StartupTask API instead of registry
+      - Update banner / update settings UI    → hidden
+  -->
+  <PropertyGroup Condition="'$(StorePublish)' == 'true'">
+    <WindowsPackageType>MSIX</WindowsPackageType>
+    <EnableMsixTooling>true</EnableMsixTooling>
+    <DefineConstants>$(DefineConstants);STORE_BUILD</DefineConstants>
+  </PropertyGroup>
+
+  <!-- ── Winget / GitHub Releases build (default) ──────────────────────────── -->
+  <!--
+    Unpackaged self-contained EXE. EnableMsixTooling=false prevents resources.pri
+    mismatch in unpackaged debug/run builds. Velopack is only referenced here.
+  -->
+  <PropertyGroup Condition="'$(StorePublish)' != 'true'">
+    <WindowsPackageType>None</WindowsPackageType>
+    <EnableMsixTooling>false</EnableMsixTooling>
+  </PropertyGroup>
+
+  <!-- ── NuGet packages ────────────────────────────────────────────────────── -->
   <ItemGroup>
     <PackageReference Include="Makaretu.Dns.Multicast" Version="0.27.0" />
     <PackageReference Include="Microsoft.WindowsAppSDK" Version="2.0.1" />
@@ -46,6 +63,10 @@
     <PackageReference Include="CommunityToolkit.Mvvm" Version="8.4.2" />
     <PackageReference Include="H.NotifyIcon.WinUI" Version="2.3.2" />
     <PackageReference Include="System.Drawing.Common" Version="9.0.1" />
+  </ItemGroup>
+
+  <!-- Velopack is only needed for the Winget/GitHub Releases build. -->
+  <ItemGroup Condition="'$(StorePublish)' != 'true'">
     <PackageReference Include="Velopack" Version="0.0.1298" />
   </ItemGroup>
 
@@ -54,6 +75,16 @@
     <Content Include="Assets\PigeonPost.ico">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
+  </ItemGroup>
+
+  <!-- MSIX visual assets — only needed when packaging for the Store. -->
+  <ItemGroup Condition="'$(StorePublish)' == 'true'">
+    <Content Include="Assets\Square44x44Logo.png" />
+    <Content Include="Assets\Square44x44Logo.targetsize-32_altform-unplated.png" />
+    <Content Include="Assets\Square150x150Logo.png" />
+    <Content Include="Assets\Wide310x150Logo.png" />
+    <Content Include="Assets\StoreLogo.png" />
+    <Content Include="Assets\SplashScreen.png" />
   </ItemGroup>
 
 </Project>
