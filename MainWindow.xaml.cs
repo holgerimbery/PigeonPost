@@ -213,7 +213,7 @@ public sealed partial class MainWindow : Window
         };
     }
 
-    /// Builds the tray context menu: Show / Pause-Resume / Quit.
+    /// <summary>Builds the tray context menu: Show / Pause-Resume / Quit.</summary>
     /// <remarks>
     /// Uses <c>Command</c> instead of <c>Click</c> — H.NotifyIcon invokes ICommand
     /// bindings reliably regardless of the internal window/thread it uses for its flyout,
