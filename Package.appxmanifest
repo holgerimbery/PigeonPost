@@ -34,7 +34,7 @@
   <Identity
     Name="HolgerImbery.PigeonPost"
     Publisher="CN=B4E50DE5-2EC8-4353-932F-B4B5CF771CDD"
-    Version="1.5.6.0"
+    Version="1.5.9.0"
     ProcessorArchitecture="neutral" />
 
   <mp:PhoneIdentity
