@@ -108,18 +108,39 @@ public partial class App : Application
         }
 
         // Start the HTTP listener so remote clients can send files and clipboard data.
-        Listener = new ListenerService(State, _window.DispatcherQueue);
-        Listener.Start();
+        try
+        {
+            Listener = new ListenerService(State, _window.DispatcherQueue);
+            Listener.Start();
+        }
+        catch (Exception ex)
+        {
+            State.Emit(LogLevel.Error, $"Listener failed to start: {ex.Message}");
+        }
 
         // Advertise the server via Bonjour/mDNS so PigeonPostCompanion can auto-discover it.
-        Mdns = new MdnsService(State);
-        Mdns.Start();
+        try
+        {
+            Mdns = new MdnsService(State);
+            Mdns.Start();
+        }
+        catch (Exception ex)
+        {
+            State.Emit(LogLevel.Error, $"mDNS failed to start: {ex.Message}");
+        }
 
         // Start the IP monitor; restart the listener and notify the user on change.
-        IpMonitor = new IpMonitorService();
-        IpMonitor.NetworkChanged  += OnNetworkChanged;
-        IpMonitor.TailscaleChanged += OnTailscaleChanged;
-        IpMonitor.Start();
+        try
+        {
+            IpMonitor = new IpMonitorService();
+            IpMonitor.NetworkChanged  += OnNetworkChanged;
+            IpMonitor.TailscaleChanged += OnTailscaleChanged;
+            IpMonitor.Start();
+        }
+        catch (Exception ex)
+        {
+            State.Emit(LogLevel.Error, $"IP monitor failed to start: {ex.Message}");
+        }
 
         // Check for updates at startup, then every 24 hours while the app is running.
         // Store builds: updates are handled by the Microsoft Store — skip entirely.
