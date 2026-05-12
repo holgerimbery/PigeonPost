@@ -520,6 +520,8 @@ public sealed partial class MainWindow : Window
 
         _peersWindow.AppWindow?.Show();
         _peersWindow.Activate();
+        // Start (or resume) mDNS peer browsing now that the window is visible.
+        _peersWindow.ViewModel.StartBrowsing();
     }
 
     // ---------------------------------------------------------------- settings

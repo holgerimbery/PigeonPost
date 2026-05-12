@@ -42,7 +42,14 @@ public sealed partial class PeersWindow : Window
             }
             catch { /* best-effort sizing */ }
 
-            AppWindow.Closing += (_, _) => ViewModel.Detach();
+            // Hide rather than close so the window can be re-shown without recreating it.
+            // StopBrowsing() pauses mDNS while the window is not visible.
+            AppWindow.Closing += (_, args) =>
+            {
+                args.Cancel = true;
+                ViewModel.StopBrowsing();
+                AppWindow.Hide();
+            };
         }
     }
 
@@ -71,6 +78,90 @@ public sealed partial class PeersWindow : Window
     {
         if ((sender as Button)?.Tag is PeerEntry peer)
             ViewModel.RemoveSavedPeer(peer);
+    }
+
+    private void EditPeerButton_Click(object sender, RoutedEventArgs e)
+    {
+        if ((sender as Button)?.Tag is not PeerEntry peer) return;
+        EnterEditMode(peer);
+    }
+
+    private void SaveEditButton_Click(object sender, RoutedEventArgs e)
+    {
+        if (_editingPeer is null) return;
+
+        var name  = AddNameBox.Text;
+        var host  = AddHostBox.Text;
+        var port  = (int)(AddPortBox.Value is double d && !double.IsNaN(d) ? d : Constants.Port);
+        var token = AddTokenBox.Password;
+
+        if (string.IsNullOrWhiteSpace(host))
+        {
+            ViewModel.StatusMessage = "Host / IP address is required.";
+            return;
+        }
+
+        ViewModel.UpdatePeer(_editingPeer, name, host, port, token);
+        ExitEditMode();
+    }
+
+    private void CancelEditButton_Click(object sender, RoutedEventArgs e) => ExitEditMode();
+
+    // ---------------------------------------------------------------- edit-mode helpers
+
+    private PeerEntry? _editingPeer;
+
+    private void EnterEditMode(PeerEntry peer)
+    {
+        _editingPeer = peer;
+
+        AddNameBox.Text      = peer.Name;
+        AddHostBox.Text      = peer.Host;
+        AddPortBox.Value     = peer.Port;
+        AddTokenBox.Password = peer.BearerToken;
+
+        FormHeaderText.Text          = $"Edit peer: {peer.Name}";
+        AddPeerButton.Visibility     = Visibility.Collapsed;
+        SaveEditButton.Visibility    = Visibility.Visible;
+        CancelEditButton.Visibility  = Visibility.Visible;
+
+        AddNameBox.Focus(FocusState.Programmatic);
+        ViewModel.StatusMessage = $"Editing {peer.Name} — update fields and click Save.";
+    }
+
+    private void ExitEditMode()
+    {
+        _editingPeer = null;
+
+        AddNameBox.Text      = "";
+        AddHostBox.Text      = "";
+        AddPortBox.Value     = Constants.Port;
+        AddTokenBox.Password = "";
+
+        FormHeaderText.Text          = "Add peer";
+        AddPeerButton.Visibility     = Visibility.Visible;
+        SaveEditButton.Visibility    = Visibility.Collapsed;
+        CancelEditButton.Visibility  = Visibility.Collapsed;
+    }
+
+    /// <summary>
+    /// Pre-fills the "Add peer" form with the discovered peer's details so the user
+    /// can optionally enter a bearer token before saving.
+    /// </summary>
+    private void AddDiscoveredPeerButton_Click(object sender, RoutedEventArgs e)
+    {
+        if ((sender as Button)?.Tag is not PeerEntry peer) return;
+
+        AddNameBox.Text      = peer.Name;
+        AddHostBox.Text      = peer.Host;
+        AddPortBox.Value     = peer.Port;
+        AddTokenBox.Password = "";
+
+        // Give focus to the token field so the user can immediately type a token,
+        // or just press Enter / click Add to save without one.
+        AddTokenBox.Focus(FocusState.Programmatic);
+
+        ViewModel.StatusMessage = $"Review details for {peer.Name}, then click Add.";
     }
 
     private void AddPeerButton_Click(object sender, RoutedEventArgs e)
