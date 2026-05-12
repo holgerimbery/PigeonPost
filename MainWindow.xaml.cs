@@ -107,7 +107,8 @@ public sealed partial class MainWindow : Window
         if (AppWindow != null)
             AppWindow.Closing += OnAppWindowClosing;
 
-        InitializeTrayIcon();
+        try { InitializeTrayIcon(); }
+        catch { /* tray icon unavailable in headless/restricted environments */ }
 
         // Re-apply window icons after the window is activated (= after Activate() is called
         // in App.OnLaunched). The taskbar button is created at that point and Windows may
