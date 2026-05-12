@@ -77,8 +77,8 @@
                             <ColumnDefinition Width="Auto"/>
                         </Grid.ColumnDefinitions>
                         <StackPanel Grid.Column="0" VerticalAlignment="Center">
-                            <TextBlock Text="{x:Bind Name}" FontWeight="SemiBold"/>
-                            <TextBlock Text="{x:Bind HostPort}" FontSize="12"
+                            <TextBlock Text="{x:Bind Name, Mode=OneWay}" FontWeight="SemiBold"/>
+                            <TextBlock Text="{x:Bind HostPort, Mode=OneWay}" FontSize="12"
                                        Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>
                         </StackPanel>
                         <Button Grid.Column="1"
