@@ -74,6 +74,7 @@
                             <ColumnDefinition Width="Auto"/>
                             <ColumnDefinition Width="Auto"/>
                             <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition Width="Auto"/>
                         </Grid.ColumnDefinitions>
                         <StackPanel Grid.Column="0" VerticalAlignment="Center">
                             <TextBlock Text="{x:Bind Name}" FontWeight="SemiBold"/>
@@ -91,6 +92,13 @@
                                 Click="SendFileButton_Click"
                                 VerticalAlignment="Center"/>
                         <Button Grid.Column="3"
+                                Tag="{x:Bind}"
+                                Click="EditPeerButton_Click"
+                                VerticalAlignment="Center"
+                                ToolTipService.ToolTip="Edit peer">
+                            <FontIcon Glyph="&#xE70F;" FontSize="14"/>
+                        </Button>
+                        <Button Grid.Column="4"
                                 Tag="{x:Bind}"
                                 Click="RemovePeerButton_Click"
                                 VerticalAlignment="Center"
@@ -115,6 +123,7 @@
                 </Grid.RowDefinitions>
 
                 <TextBlock Grid.Row="0"
+                           x:Name="FormHeaderText"
                            Text="Add peer"
                            FontWeight="SemiBold" FontSize="13"
                            Foreground="{ThemeResource TextFillColorPrimaryBrush}"/>
@@ -143,10 +152,20 @@
                     </Grid.ColumnDefinitions>
                     <PasswordBox Grid.Column="0" x:Name="AddTokenBox"
                                  PlaceholderText="Bearer token (optional)"/>
-                    <Button Grid.Column="1"
-                            Content="Add"
-                            Click="AddPeerButton_Click"
-                            VerticalAlignment="Bottom"/>
+                    <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8" VerticalAlignment="Bottom">
+                        <Button x:Name="AddPeerButton"
+                                Content="Add"
+                                Click="AddPeerButton_Click"/>
+                        <Button x:Name="SaveEditButton"
+                                Content="Save"
+                                Click="SaveEditButton_Click"
+                                Style="{ThemeResource AccentButtonStyle}"
+                                Visibility="Collapsed"/>
+                        <Button x:Name="CancelEditButton"
+                                Content="Cancel"
+                                Click="CancelEditButton_Click"
+                                Visibility="Collapsed"/>
+                    </StackPanel>
                 </Grid>
             </Grid>
         </Border>

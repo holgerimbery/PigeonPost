@@ -166,6 +166,22 @@ public sealed partial class PeersViewModel : ObservableObject
         StatusMessage = $"Removed peer {peer.Name}";
     }
 
+    /// <summary>
+    /// Updates an existing saved peer in-place and persists settings immediately.
+    /// </summary>
+    public void UpdatePeer(PeerEntry peer, string name, string host, int port, string bearerToken)
+    {
+        if (string.IsNullOrWhiteSpace(host)) return;
+
+        peer.Name        = string.IsNullOrWhiteSpace(name) ? host : name.Trim();
+        peer.Host        = host.Trim();
+        peer.Port        = port > 0 ? port : Constants.Port;
+        peer.BearerToken = bearerToken.Trim();
+
+        SettingsService.Save();
+        StatusMessage = $"Updated peer {peer.Name}";
+    }
+
     // ---------------------------------------------------------------- cleanup
 
     /// <summary>Unsubscribes from mDNS events. Call when the window is closed.</summary>
