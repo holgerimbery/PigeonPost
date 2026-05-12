@@ -2,6 +2,7 @@
 // Licensed under the MIT License. See LICENSE in the project root for license information.
 
 using System.Text.Json.Serialization;
+using CommunityToolkit.Mvvm.ComponentModel;
 
 namespace PigeonPost.Models;
 
@@ -10,19 +11,24 @@ namespace PigeonPost.Models;
 /// Instances that are saved to disk live in <see cref="Services.AppSettings.Peers"/>;
 /// mDNS-discovered instances are held only in memory.
 /// </summary>
-public sealed class PeerEntry
+public sealed partial class PeerEntry : ObservableObject
 {
     /// <summary>Human-readable display name (e.g. the remote machine name).</summary>
-    public string Name { get; set; } = "";
+    [ObservableProperty]
+    private string _name = "";
 
     /// <summary>
     /// Hostname or IP address used to reach the peer
     /// (e.g. <c>DESKTOP-ABC.local</c> or <c>192.168.1.42</c>).
     /// </summary>
-    public string Host { get; set; } = "";
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(HostPort))]
+    private string _host = "";
 
     /// <summary>TCP port the peer's PigeonPost HTTP server listens on. Default: 2560.</summary>
-    public int Port { get; set; } = 2560;
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(HostPort))]
+    private int _port = 2560;
 
     /// <summary>
     /// DPAPI-encrypted bearer token, stored as a Base64 string.
