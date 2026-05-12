@@ -56,7 +56,23 @@ step-by-step setup instructions are in the [iOS Shortcuts wiki page](https://git
 - **Start with Windows** — optional autostart toggle; app launches hidden to tray
 - **Smart network monitoring** — detects WiFi ↔ LAN switches, IP changes, and offline events; restarts the listener automatically on relevant changes
 - **mDNS / Bonjour auto-discovery** — advertises the server as `_pigeonpost._tcp` on the local network so the iOS companion app can find your PC automatically without typing an IP address
+- **PC-to-PC Peers** — push clipboard text or files directly to other PigeonPost instances on the same network; peers are auto-discovered via mDNS, optionally secured with a bearer token, and saved for quick reuse
 - **Auto-update** — checks GitHub Releases on startup and every 24 hours; shows an in-app banner when a new version is available; one click installs and restarts
+
+---
+
+## PC-to-PC Peer Sharing
+
+PigeonPost can push clipboard content and files **directly to other PigeonPost instances** running on the same network — no cloud relay, no account.
+
+Open the **Peers** window (🖥️ button in the main window) to:
+
+1. **Discover** — nearby PigeonPost PCs appear automatically via mDNS/Bonjour while the window is open
+2. **Save** — click **Add to Peers** on a discovered machine (or fill in the form manually) and optionally add a bearer token for authenticated endpoints
+3. **Edit** — update the name, host, port, or token of any saved peer at any time with the ✏️ button
+4. **Send** — click **Send Clipboard** or **Send File** on any saved peer to push content instantly
+
+Full setup and usage details are in the [PC-to-PC Peers wiki page](https://github.com/holgerimbery/PigeonPost/wiki/PC-to-PC-Peers).
 
 ---
 
@@ -106,6 +122,7 @@ Full documentation is in the [project wiki](https://github.com/holgerimbery/Pige
 | [Remote Access](https://github.com/holgerimbery/PigeonPost/wiki/Remote-Access) | Tailscale setup (Windows 11 + iOS), creating a tailnet, enabling HTTPS |
 | [Build from Source](https://github.com/holgerimbery/PigeonPost/wiki/Build-from-Source) | Prerequisites, build & run, Velopack publish, project layout |
 | [How It Works](https://github.com/holgerimbery/PigeonPost/wiki/How-It-Works) | HTTP listener binding, bearer auth, mDNS, network change handling, dark / light mode |
+| [PC-to-PC Peers](https://github.com/holgerimbery/PigeonPost/wiki/PC-to-PC-Peers) | Discover, save, and push clipboard / files to other PigeonPost PCs on the same network |
 | [Troubleshooting](https://github.com/holgerimbery/PigeonPost/wiki/Troubleshooting) | Common issues, fixes, security notes, and 401 errors |
 
 ---
