@@ -2,15 +2,30 @@
 // Licensed under the MIT License. See LICENSE in the project root for license information.
 
 using System;
+using System.Linq;
 using Makaretu.Dns;
 using PigeonPost.Models;
 
 namespace PigeonPost.Services;
 
 /// <summary>
-/// Advertises the PigeonPost HTTP server as a Bonjour/mDNS service so iOS clients
+/// A peer discovered on the local network via mDNS.
+/// </summary>
+/// <param name="Name">Machine name of the remote PC (e.g. <c>DESKTOP-ABC</c>).</param>
+/// <param name="Host">Resolvable host name (e.g. <c>DESKTOP-ABC.local</c>) or IP address.</param>
+/// <param name="Port">TCP port the peer's PigeonPost server listens on.</param>
+public sealed record DiscoveredPeerInfo(string Name, string Host, int Port);
+
+/// <summary>
+/// Advertises the PigeonPost HTTP serveras a Bonjour/mDNS service so iOS clients
 /// (PigeonPostCompanion) can auto-discover it on the local network without manual
 /// IP entry.
+///
+/// <para>
+/// Also <em>browses</em> for other PigeonPost instances on the local network so the
+/// Peers feature can show them as candidates for clipboard/file push without the user
+/// having to type an IP address.
+/// </para>
 ///
 /// <para>
 /// Service type  : <c>_pigeonpost._tcp</c><br/>
@@ -29,8 +44,26 @@ public sealed class MdnsService : IDisposable
     private MulticastService? _mdns;
     private ServiceDiscovery? _sd;
     private ServiceProfile?   _profile;
+    private bool _isBrowsing;
+
+    // Peers already seen this browse session — prevents log flood from repeated announcements.
+    private readonly System.Collections.Generic.HashSet<string> _knownPeers = new(StringComparer.OrdinalIgnoreCase);
 
     private static readonly string ServiceType = "_pigeonpost._tcp";
+
+    // ----------------------------------------------------------------- peer discovery events
+
+    /// <summary>
+    /// Raised (from any thread) when a new <c>_pigeonpost._tcp</c> peer appears on the
+    /// local network. Not raised for this machine's own advertisement.
+    /// </summary>
+    public event Action<DiscoveredPeerInfo>? PeerDiscovered;
+
+    /// <summary>
+    /// Raised (from any thread) when a previously advertised peer sends a goodbye packet.
+    /// The argument is the peer's machine name.
+    /// </summary>
+    public event Action<string>? PeerLost;
 
     /// <param name="state">Shared application state; used for log emission.</param>
     public MdnsService(AppState state) => _state = state;
@@ -38,8 +71,9 @@ public sealed class MdnsService : IDisposable
     // ----------------------------------------------------------------- start / stop
 
     /// <summary>
-    /// Starts mDNS advertisement. Sends an initial announcement so nearby iOS devices
+    /// Starts mDNS advertisement only. Sends an initial announcement so nearby iOS devices
     /// discover the service immediately without waiting for a query.
+    /// Call <see cref="StartBrowsing"/> separately to find other PigeonPost peers.
     /// Safe to call from any thread.
     /// </summary>
     public void Start()
@@ -53,7 +87,9 @@ public sealed class MdnsService : IDisposable
                 serviceName:  ServiceType,
                 port:         (ushort)Constants.Port);
 
+            // Advertise our own instance only — browsing is started on demand.
             _sd.Advertise(_profile);
+
             _mdns.Start();
 
             _state.Emit(LogLevel.Info,
@@ -66,11 +102,49 @@ public sealed class MdnsService : IDisposable
     }
 
     /// <summary>
+    /// Starts browsing for other <c>_pigeonpost._tcp</c> peers on the network.
+    /// Fires <see cref="PeerDiscovered"/> / <see cref="PeerLost"/> events.
+    /// Safe to call repeatedly — subsequent calls are no-ops if already browsing.
+    /// </summary>
+    public void StartBrowsing()
+    {
+        if (_isBrowsing || _sd == null) return;
+
+        _knownPeers.Clear();
+        _sd.ServiceInstanceDiscovered += OnServiceInstanceDiscovered;
+        _sd.ServiceInstanceShutdown   += OnServiceInstanceShutdown;
+        _isBrowsing = true;
+
+        // Trigger an immediate probe so already-running peers respond right away.
+        _sd.QueryServiceInstances(ServiceType);
+
+        _state.Emit(LogLevel.Info, "mDNS: started browsing for peers");
+    }
+
+    /// <summary>
+    /// Stops peer browsing and clears the known-peer cache.
+    /// Advertisement continues uninterrupted.
+    /// Safe to call when not browsing — no-op in that case.
+    /// </summary>
+    public void StopBrowsing()
+    {
+        if (!_isBrowsing || _sd == null) return;
+
+        _sd.ServiceInstanceDiscovered -= OnServiceInstanceDiscovered;
+        _sd.ServiceInstanceShutdown   -= OnServiceInstanceShutdown;
+        _isBrowsing = false;
+        _knownPeers.Clear();
+
+        _state.Emit(LogLevel.Info, "mDNS: stopped browsing for peers");
+    }
+
+    /// <summary>
     /// Sends mDNS goodbye packets and stops the multicast service.
     /// Safe to call from any thread; idempotent.
     /// </summary>
     public void Stop()
     {
+        StopBrowsing();
         try { if (_profile != null) _sd?.Unadvertise(_profile); } catch { /* best-effort goodbye */ }
         try { _mdns?.Stop(); }   catch { }
         try { _sd?.Dispose(); }  catch { }
@@ -90,4 +164,72 @@ public sealed class MdnsService : IDisposable
 
     /// <inheritdoc/>
     public void Dispose() => Stop();
+
+    // ----------------------------------------------------------------- browse handlers
+
+    /// <summary>
+    /// Called (on an mDNS thread) when a service instance is announced on the network.
+    /// Ignores this machine's own advertisement and extracts the peer's host and port
+    /// from the SRV/A records in the DNS message when available.
+    /// </summary>
+    private void OnServiceInstanceDiscovered(object? sender, ServiceInstanceDiscoveryEventArgs e)
+    {
+        try
+        {
+            // The first label of the instance name is the machine name
+            // (e.g. "DESKTOP-ABC" from "DESKTOP-ABC._pigeonpost._tcp.local.").
+            var labels = e.ServiceInstanceName.Labels;
+            if (labels == null || labels.Count == 0) return;
+
+            var instanceName = labels[0];
+            if (instanceName.Equals(Environment.MachineName, StringComparison.OrdinalIgnoreCase))
+                return;
+
+            // Prefer the actual IP from the A record; fall back to .local mDNS name.
+            var aRecord = e.Message?.AdditionalRecords
+                .OfType<ARecord>()
+                .FirstOrDefault();
+
+            // Prefer the port from the SRV record; fall back to the default port.
+            var srvRecord = e.Message?.AdditionalRecords
+                .OfType<SRVRecord>()
+                .FirstOrDefault();
+
+            var host = aRecord?.Address?.ToString() ?? $"{instanceName}.local";
+            var port = srvRecord?.Port ?? (ushort)Constants.Port;
+
+            var info = new DiscoveredPeerInfo(instanceName, host, port);
+            PeerDiscovered?.Invoke(info);
+
+            // Log only the first time we see this peer to avoid flooding the activity log
+            // with repeated mDNS announcements from the same device.
+            if (_knownPeers.Add(instanceName))
+                _state.Emit(LogLevel.Info, $"mDNS: discovered peer {instanceName} at {host}:{port}");
+        }
+        catch (Exception ex)
+        {
+            _state.Emit(LogLevel.Warn, $"mDNS: error processing peer discovery — {ex.Message}");
+        }
+    }
+
+    /// <summary>
+    /// Called (on an mDNS thread) when a service instance sends a goodbye packet.
+    /// </summary>
+    private void OnServiceInstanceShutdown(object? sender, ServiceInstanceShutdownEventArgs e)
+    {
+        try
+        {
+            var labels = e.ServiceInstanceName.Labels;
+            if (labels == null || labels.Count == 0) return;
+
+            var instanceName = labels[0];
+            if (instanceName.Equals(Environment.MachineName, StringComparison.OrdinalIgnoreCase))
+                return;
+
+            _knownPeers.Remove(instanceName);
+            PeerLost?.Invoke(instanceName);
+            _state.Emit(LogLevel.Info, $"mDNS: peer {instanceName} went offline");
+        }
+        catch { /* best-effort */ }
+    }
 }

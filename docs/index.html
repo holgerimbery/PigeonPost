@@ -319,6 +319,41 @@
       line-height: 1; padding: .25rem;
     }
     .tf-modal-close:hover { color: var(--c-text); }
+    /* Winget modal extras */
+    .winget-cmd {
+      display: flex; align-items: center; justify-content: space-between;
+      background: #1a1a1a; border-radius: 8px; padding: .6rem .9rem;
+      margin: 0 0 1.25rem; text-align: left; gap: .5rem;
+    }
+    .winget-cmd code {
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      font-size: .82rem; color: #d4f8a4; flex: 1; word-break: break-all;
+    }
+    .winget-copy-btn {
+      flex-shrink: 0; background: none; border: 1px solid rgba(255,255,255,.25);
+      color: rgba(255,255,255,.7); border-radius: 5px; padding: .25rem .55rem;
+      font-size: .72rem; cursor: pointer; transition: background .15s, color .15s;
+      line-height: 1.4;
+    }
+    .winget-copy-btn:hover { background: rgba(255,255,255,.12); color: #fff; }
+    /* Winget trigger button */
+    .btn-winget {
+      display: inline-flex; align-items: center; gap: .45rem;
+      background: transparent; border: 1.5px solid rgba(255,255,255,.35);
+      color: #fff; border-radius: 99px; padding: .6rem 1.25rem;
+      font-size: .9rem; font-weight: 600; cursor: pointer;
+      transition: border-color .15s, background .15s;
+    }
+    .btn-winget:hover { border-color: rgba(255,255,255,.7); background: rgba(255,255,255,.08); }
+    /* Platform card winget button (dark background card) */
+    .btn-winget-card {
+      display: inline-flex; align-items: center; gap: .45rem;
+      background: transparent; border: 1.5px solid rgba(255,255,255,.3);
+      color: inherit; border-radius: 99px; padding: .55rem 1.1rem;
+      font-size: .85rem; font-weight: 600; cursor: pointer;
+      transition: border-color .15s, background .15s; margin-top: .75rem;
+    }
+    .btn-winget-card:hover { border-color: currentColor; background: rgba(0,0,0,.07); }
     .hero-title-row {
       display: flex; flex-direction: column; align-items: center;
       gap: .3rem; margin-bottom: 1.25rem;
@@ -492,6 +527,12 @@
       </svg>
       Download for Windows
     </a>
+    <button class="btn-winget" onclick="openWingetModal()" aria-haspopup="dialog">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+        <rect x="2" y="4" width="20" height="16" rx="2"/><path d="M8 9l4 3-4 3M13 15h3"/>
+      </svg>
+      Install via winget
+    </button>
     <button class="btn btn-ios btn-preview" onclick="openTFModal()">
       <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
         <path d="M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45 4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.8-.91.65.03 2.47.26 3.64 1.98l-.09.06c-.22.13-2.18 1.28-2.16 3.81.03 3.02 2.65 4.03 2.68 4.04l-.07.27zM13 3.5c.73-.83 1.94-1.46 2.94-1.5.13 1.17-.34 2.35-1.04 3.19-.69.85-1.83 1.51-2.95 1.42-.15-1.15.41-2.35 1.05-3.11z"/>
@@ -642,6 +683,12 @@
             </svg>
             Download for Windows
           </a>
+          <button class="btn-winget-card" onclick="openWingetModal()" aria-haspopup="dialog">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+              <rect x="2" y="4" width="20" height="16" rx="2"/><path d="M8 9l4 3-4 3M13 15h3"/>
+            </svg>
+            Install via winget
+          </button>
         </div>
       </div>
 
@@ -844,6 +891,20 @@
   </div>
 </footer>
 
+<!-- ── Winget Modal ───────────────────────────────────────────────── -->
+<div class="tf-modal-overlay" id="wingetModal" role="dialog" aria-modal="true" aria-labelledby="wingetModalTitle">
+  <div class="tf-modal">
+    <button class="tf-modal-close" onclick="closeWingetModal()" aria-label="Close">&#x2715;</button>
+    <div class="tf-modal-icon">📦</div>
+    <h3 id="wingetModalTitle">Install via winget</h3>
+    <p>Run the following command in any terminal (cmd, PowerShell, Windows Terminal):</p>
+    <div class="winget-cmd">
+      <code id="wingetCmd">winget install HolgerImbery.PigeonPost</code>
+      <button class="winget-copy-btn" id="wingetCopyBtn" onclick="copyWingetCmd()">Copy</button>
+    </div>
+  </div>
+</div>
+
 <!-- ── TestFlight Preview Modal ────────────────────────────────────── -->
 <div class="tf-modal-overlay" id="tfModal" role="dialog" aria-modal="true" aria-labelledby="tfModalTitle">
   <div class="tf-modal">
@@ -872,6 +933,29 @@
   navLinks.querySelectorAll('a').forEach(a =>
     a.addEventListener('click', () => { navLinks.classList.remove('open'); hamburger.setAttribute('aria-expanded', 'false'); })
   );
+  function openWingetModal() {
+    const overlay = document.getElementById('wingetModal');
+    overlay.classList.add('open');
+    overlay.addEventListener('click', function onOutside(e) {
+      if (e.target === overlay) { closeWingetModal(); overlay.removeEventListener('click', onOutside); }
+    });
+    document.addEventListener('keydown', function onEsc(e) {
+      if (e.key === 'Escape') { closeWingetModal(); document.removeEventListener('keydown', onEsc); }
+    });
+  }
+  function closeWingetModal() {
+    document.getElementById('wingetModal').classList.remove('open');
+    const btn = document.getElementById('wingetCopyBtn');
+    if (btn) btn.textContent = 'Copy';
+  }
+  function copyWingetCmd() {
+    const cmd = document.getElementById('wingetCmd').textContent;
+    navigator.clipboard.writeText(cmd).then(() => {
+      const btn = document.getElementById('wingetCopyBtn');
+      btn.textContent = 'Copied!';
+      setTimeout(() => { btn.textContent = 'Copy'; }, 2000);
+    });
+  }
   function openTFModal() {
     const overlay = document.getElementById('tfModal');
     overlay.classList.add('open');

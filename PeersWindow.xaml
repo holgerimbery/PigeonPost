@@ -1,0 +1,181 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Copyright (c) 2026 Holger Imbery. All rights reserved. -->
+<!-- Licensed under the MIT License. See LICENSE in the project root for license information. -->
+<Window
+    x:Class="PigeonPost.PeersWindow"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:models="using:PigeonPost.Models"
+    Title="Peers — PigeonPost">
+
+    <Window.SystemBackdrop>
+        <MicaBackdrop Kind="BaseAlt"/>
+    </Window.SystemBackdrop>
+
+    <Grid x:Name="RootGrid" Padding="20" RowSpacing="12">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <!-- ── Discovered peers ──────────────────────────────────────────── -->
+        <TextBlock Grid.Row="0"
+                   Text="Discovered on network"
+                   FontWeight="SemiBold" FontSize="13"
+                   Foreground="{ThemeResource TextFillColorPrimaryBrush}"/>
+
+        <ListView Grid.Row="1"
+                  x:Name="DiscoveredList"
+                  ItemsSource="{x:Bind ViewModel.DiscoveredPeers}"
+                  SelectionMode="None"
+                  MinHeight="80">
+            <ListView.ItemTemplate>
+                <DataTemplate x:DataType="models:PeerEntry">
+                    <Grid ColumnSpacing="8" Padding="0,4">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+                        <StackPanel Grid.Column="0" VerticalAlignment="Center">
+                            <TextBlock Text="{x:Bind Name}" FontWeight="SemiBold"/>
+                            <TextBlock Text="{x:Bind HostPort}" FontSize="12"
+                                       Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>
+                        </StackPanel>
+                        <Button Grid.Column="1"
+                                Content="Add to Peers"
+                                Tag="{x:Bind}"
+                                Click="AddDiscoveredPeerButton_Click"
+                                VerticalAlignment="Center"/>
+                    </Grid>
+                </DataTemplate>
+            </ListView.ItemTemplate>
+        </ListView>
+
+        <!-- ── Saved peers ───────────────────────────────────────────────── -->
+        <TextBlock Grid.Row="2"
+                   Text="Saved peers"
+                   FontWeight="SemiBold" FontSize="13"
+                   Foreground="{ThemeResource TextFillColorPrimaryBrush}"/>
+
+        <ListView Grid.Row="3"
+                  x:Name="SavedList"
+                  ItemsSource="{x:Bind ViewModel.SavedPeers}"
+                  SelectionMode="None"
+                  MinHeight="80">
+            <ListView.ItemTemplate>
+                <DataTemplate x:DataType="models:PeerEntry">
+                    <Grid ColumnSpacing="8" Padding="0,4">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+                        <StackPanel Grid.Column="0" VerticalAlignment="Center">
+                            <TextBlock Text="{x:Bind Name, Mode=OneWay}" FontWeight="SemiBold"/>
+                            <TextBlock Text="{x:Bind HostPort, Mode=OneWay}" FontSize="12"
+                                       Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>
+                        </StackPanel>
+                        <Button Grid.Column="1"
+                                Content="Send Clipboard"
+                                Tag="{x:Bind}"
+                                Click="SendClipboardButton_Click"
+                                VerticalAlignment="Center"/>
+                        <Button Grid.Column="2"
+                                Content="Send File"
+                                Tag="{x:Bind}"
+                                Click="SendFileButton_Click"
+                                VerticalAlignment="Center"/>
+                        <Button Grid.Column="3"
+                                Tag="{x:Bind}"
+                                Click="EditPeerButton_Click"
+                                VerticalAlignment="Center"
+                                ToolTipService.ToolTip="Edit peer">
+                            <FontIcon Glyph="&#xE70F;" FontSize="14"/>
+                        </Button>
+                        <Button Grid.Column="4"
+                                Tag="{x:Bind}"
+                                Click="RemovePeerButton_Click"
+                                VerticalAlignment="Center"
+                                ToolTipService.ToolTip="Remove peer">
+                            <FontIcon Glyph="&#xE74D;" FontSize="14"/>
+                        </Button>
+                    </Grid>
+                </DataTemplate>
+            </ListView.ItemTemplate>
+        </ListView>
+
+        <!-- ── Add peer form ─────────────────────────────────────────────── -->
+        <Border Grid.Row="4"
+                BorderThickness="0,1,0,0"
+                BorderBrush="{ThemeResource DividerStrokeColorDefaultBrush}"
+                Padding="0,12,0,0">
+            <Grid RowSpacing="8">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                </Grid.RowDefinitions>
+
+                <TextBlock Grid.Row="0"
+                           x:Name="FormHeaderText"
+                           Text="Add peer"
+                           FontWeight="SemiBold" FontSize="13"
+                           Foreground="{ThemeResource TextFillColorPrimaryBrush}"/>
+
+                <Grid Grid.Row="1" ColumnSpacing="8">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="80"/>
+                    </Grid.ColumnDefinitions>
+                    <TextBox Grid.Column="0" x:Name="AddNameBox"
+                             PlaceholderText="Display name (optional)"/>
+                    <TextBox Grid.Column="1" x:Name="AddHostBox"
+                             PlaceholderText="Host / IP address"/>
+                    <NumberBox Grid.Column="2" x:Name="AddPortBox"
+                               PlaceholderText="Port"
+                               Minimum="1" Maximum="65535"
+                               Value="2560"
+                               SpinButtonPlacementMode="Hidden"/>
+                </Grid>
+
+                <Grid Grid.Row="2" ColumnSpacing="8">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
+                    <PasswordBox Grid.Column="0" x:Name="AddTokenBox"
+                                 PlaceholderText="Bearer token (optional)"/>
+                    <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8" VerticalAlignment="Bottom">
+                        <Button x:Name="AddPeerButton"
+                                Content="Add"
+                                Click="AddPeerButton_Click"/>
+                        <Button x:Name="SaveEditButton"
+                                Content="Save"
+                                Click="SaveEditButton_Click"
+                                Style="{ThemeResource AccentButtonStyle}"
+                                Visibility="Collapsed"/>
+                        <Button x:Name="CancelEditButton"
+                                Content="Cancel"
+                                Click="CancelEditButton_Click"
+                                Visibility="Collapsed"/>
+                    </StackPanel>
+                </Grid>
+            </Grid>
+        </Border>
+
+        <!-- ── Status line ───────────────────────────────────────────────── -->
+        <TextBlock Grid.Row="5"
+                   Text="{x:Bind ViewModel.StatusMessage, Mode=OneWay}"
+                   FontSize="12"
+                   Opacity="0.7"
+                   TextWrapping="Wrap"
+                   Margin="0,4,0,0"/>
+    </Grid>
+</Window>
