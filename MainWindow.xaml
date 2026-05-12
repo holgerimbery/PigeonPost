@@ -221,6 +221,11 @@
                         ToolTipService.ToolTip="Activity Log">
                     <FontIcon Glyph="&#xE9F9;" FontSize="16"/>
                 </Button>
+                <!-- 🖧 opens the Peers window -->
+                <Button x:Name="PeersButton" Click="PeersButton_Click"
+                        ToolTipService.ToolTip="Peers (clipboard &amp; file sharing)">
+                    <FontIcon Glyph="&#xE779;" FontSize="16"/>
+                </Button>
                 <!-- ❓ opens the GitHub repository in the default browser -->
                 <Button x:Name="HelpButton" Click="HelpButton_Click"
                         ToolTipService.ToolTip="Help / Documentation">
