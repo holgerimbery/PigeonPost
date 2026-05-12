@@ -75,8 +75,13 @@ jobs:
       - name: Parse version from tag
         shell: pwsh
         run: |
-          $tag = "${{ github.ref_name }}"           # e.g. v1.5.0-beta.1
-          $ver = $tag.TrimStart('v')                 # e.g. 1.5.0-beta.1
+          $tag = "${{ github.ref_name }}"           # e.g. v1.5.0-beta.1 or 'main'
+          if ($tag -match '^v\d+\.\d+') {
+            $ver = $tag.TrimStart('v')               # e.g. 1.5.0-beta.1
+          } else {
+            # workflow_dispatch on a branch — read from csproj
+            $ver = (Select-Xml -Path PigeonPost.csproj -XPath '/Project/PropertyGroup/Version').Node.InnerText
+          }
           $numericVer = ($ver -split '-')[0]         # e.g. 1.5.0
           echo "PACK_VERSION=$ver" >> $env:GITHUB_ENV
           echo "FILE_VERSION=$numericVer.0" >> $env:GITHUB_ENV
