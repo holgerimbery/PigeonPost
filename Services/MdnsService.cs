@@ -44,6 +44,10 @@ public sealed class MdnsService : IDisposable
     private MulticastService? _mdns;
     private ServiceDiscovery? _sd;
     private ServiceProfile?   _profile;
+    private bool _isBrowsing;
+
+    // Peers already seen this browse session — prevents log flood from repeated announcements.
+    private readonly System.Collections.Generic.HashSet<string> _knownPeers = new(StringComparer.OrdinalIgnoreCase);
 
     private static readonly string ServiceType = "_pigeonpost._tcp";
 
@@ -67,9 +71,9 @@ public sealed class MdnsService : IDisposable
     // ----------------------------------------------------------------- start / stop
 
     /// <summary>
-    /// Starts mDNS advertisement. Sends an initial announcement so nearby iOS devices
+    /// Starts mDNS advertisement only. Sends an initial announcement so nearby iOS devices
     /// discover the service immediately without waiting for a query.
-    /// Also begins browsing for other <c>_pigeonpost._tcp</c> peers on the network.
+    /// Call <see cref="StartBrowsing"/> separately to find other PigeonPost peers.
     /// Safe to call from any thread.
     /// </summary>
     public void Start()
@@ -83,17 +87,10 @@ public sealed class MdnsService : IDisposable
                 serviceName:  ServiceType,
                 port:         (ushort)Constants.Port);
 
-            // ── Advertise our own instance ──
+            // Advertise our own instance only — browsing is started on demand.
             _sd.Advertise(_profile);
 
-            // ── Browse for other PigeonPost instances ──
-            _sd.ServiceInstanceDiscovered += OnServiceInstanceDiscovered;
-            _sd.ServiceInstanceShutdown   += OnServiceInstanceShutdown;
-
             _mdns.Start();
-
-            // Trigger an immediate probe so already-running peers respond right away.
-            _sd.QueryServiceInstances(ServiceType);
 
             _state.Emit(LogLevel.Info,
                 $"mDNS: advertising {Environment.MachineName}.{ServiceType}.local:{Constants.Port}");
@@ -105,16 +102,49 @@ public sealed class MdnsService : IDisposable
     }
 
     /// <summary>
+    /// Starts browsing for other <c>_pigeonpost._tcp</c> peers on the network.
+    /// Fires <see cref="PeerDiscovered"/> / <see cref="PeerLost"/> events.
+    /// Safe to call repeatedly — subsequent calls are no-ops if already browsing.
+    /// </summary>
+    public void StartBrowsing()
+    {
+        if (_isBrowsing || _sd == null) return;
+
+        _knownPeers.Clear();
+        _sd.ServiceInstanceDiscovered += OnServiceInstanceDiscovered;
+        _sd.ServiceInstanceShutdown   += OnServiceInstanceShutdown;
+        _isBrowsing = true;
+
+        // Trigger an immediate probe so already-running peers respond right away.
+        _sd.QueryServiceInstances(ServiceType);
+
+        _state.Emit(LogLevel.Info, "mDNS: started browsing for peers");
+    }
+
+    /// <summary>
+    /// Stops peer browsing and clears the known-peer cache.
+    /// Advertisement continues uninterrupted.
+    /// Safe to call when not browsing — no-op in that case.
+    /// </summary>
+    public void StopBrowsing()
+    {
+        if (!_isBrowsing || _sd == null) return;
+
+        _sd.ServiceInstanceDiscovered -= OnServiceInstanceDiscovered;
+        _sd.ServiceInstanceShutdown   -= OnServiceInstanceShutdown;
+        _isBrowsing = false;
+        _knownPeers.Clear();
+
+        _state.Emit(LogLevel.Info, "mDNS: stopped browsing for peers");
+    }
+
+    /// <summary>
     /// Sends mDNS goodbye packets and stops the multicast service.
     /// Safe to call from any thread; idempotent.
     /// </summary>
     public void Stop()
     {
-        if (_sd != null)
-        {
-            _sd.ServiceInstanceDiscovered -= OnServiceInstanceDiscovered;
-            _sd.ServiceInstanceShutdown   -= OnServiceInstanceShutdown;
-        }
+        StopBrowsing();
         try { if (_profile != null) _sd?.Unadvertise(_profile); } catch { /* best-effort goodbye */ }
         try { _mdns?.Stop(); }   catch { }
         try { _sd?.Dispose(); }  catch { }
@@ -171,7 +201,10 @@ public sealed class MdnsService : IDisposable
             var info = new DiscoveredPeerInfo(instanceName, host, port);
             PeerDiscovered?.Invoke(info);
 
-            _state.Emit(LogLevel.Info, $"mDNS: discovered peer {instanceName} at {host}:{port}");
+            // Log only the first time we see this peer to avoid flooding the activity log
+            // with repeated mDNS announcements from the same device.
+            if (_knownPeers.Add(instanceName))
+                _state.Emit(LogLevel.Info, $"mDNS: discovered peer {instanceName} at {host}:{port}");
         }
         catch (Exception ex)
         {
@@ -193,6 +226,7 @@ public sealed class MdnsService : IDisposable
             if (instanceName.Equals(Environment.MachineName, StringComparison.OrdinalIgnoreCase))
                 return;
 
+            _knownPeers.Remove(instanceName);
             PeerLost?.Invoke(instanceName);
             _state.Emit(LogLevel.Info, $"mDNS: peer {instanceName} went offline");
         }

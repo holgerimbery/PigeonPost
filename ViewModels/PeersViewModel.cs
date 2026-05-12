@@ -55,9 +55,33 @@ public sealed partial class PeersViewModel : ObservableObject
         foreach (var peer in SettingsService.Current.Peers)
             SavedPeers.Add(peer);
 
-        // Subscribe to mDNS browse events.
+        // mDNS browse events are subscribed lazily via StartBrowsing() / StopBrowsing()
+        // so the multicast listener is only active while the Peers window is visible.
+    }
+
+    // ---------------------------------------------------------------- browse lifecycle
+
+    /// <summary>
+    /// Subscribes to mDNS browse events and starts the underlying browse loop.
+    /// Call when the Peers window becomes visible. Safe to call multiple times.
+    /// </summary>
+    public void StartBrowsing()
+    {
         _mdns.PeerDiscovered += OnPeerDiscovered;
         _mdns.PeerLost       += OnPeerLost;
+        _mdns.StartBrowsing();
+    }
+
+    /// <summary>
+    /// Unsubscribes from mDNS browse events and stops the browse loop.
+    /// Clears the <see cref="DiscoveredPeers"/> list. Safe to call multiple times.
+    /// </summary>
+    public void StopBrowsing()
+    {
+        _mdns.PeerDiscovered -= OnPeerDiscovered;
+        _mdns.PeerLost       -= OnPeerLost;
+        _mdns.StopBrowsing();
+        _ui.TryEnqueue(DiscoveredPeers.Clear);
     }
 
     // ---------------------------------------------------------------- mDNS handlers (marshalled to UI thread)
@@ -109,6 +133,7 @@ public sealed partial class PeersViewModel : ObservableObject
                 StatusMessage = "Clipboard does not contain text.";
                 return;
             }
+            // No ConfigureAwait — stay on UI thread for the WinRT clipboard operation.
             text = await view.GetTextAsync();
         }
         catch (Exception ex)
@@ -118,16 +143,21 @@ public sealed partial class PeersViewModel : ObservableObject
         }
 
         StatusMessage = $"Sending clipboard to {peer.Name}…";
-        var (ok, err) = await _sender.SendClipboardAsync(peer, text).ConfigureAwait(true);
-        StatusMessage = ok ? $"✅ Clipboard sent to {peer.Name}" : $"❌ {peer.Name}: {err}";
+        // Switch to thread pool for the HTTP send, then marshal back explicitly.
+        var (ok, err) = await _sender.SendClipboardAsync(peer, text).ConfigureAwait(false);
+        _ui.TryEnqueue(() => StatusMessage = ok
+            ? $"✅ Clipboard sent to {peer.Name}"
+            : $"❌ {peer.Name}: {err}");
     }
 
     /// <summary>Sends <paramref name="filePath"/> to <paramref name="peer"/>.</summary>
     public async Task SendFileToPeerAsync(PeerEntry peer, string filePath)
     {
         StatusMessage = $"Sending file to {peer.Name}…";
-        var (ok, err) = await _sender.SendFileAsync(peer, filePath).ConfigureAwait(true);
-        StatusMessage = ok ? $"✅ File sent to {peer.Name}" : $"❌ {peer.Name}: {err}";
+        var (ok, err) = await _sender.SendFileAsync(peer, filePath).ConfigureAwait(false);
+        _ui.TryEnqueue(() => StatusMessage = ok
+            ? $"✅ File sent to {peer.Name}"
+            : $"❌ {peer.Name}: {err}");
     }
 
     // ---------------------------------------------------------------- peer management
@@ -184,10 +214,6 @@ public sealed partial class PeersViewModel : ObservableObject
 
     // ---------------------------------------------------------------- cleanup
 
-    /// <summary>Unsubscribes from mDNS events. Call when the window is closed.</summary>
-    public void Detach()
-    {
-        _mdns.PeerDiscovered -= OnPeerDiscovered;
-        _mdns.PeerLost       -= OnPeerLost;
-    }
+    /// <summary>Stops browsing and unsubscribes from mDNS events. Call when the window is closed.</summary>
+    public void Detach() => StopBrowsing();
 }

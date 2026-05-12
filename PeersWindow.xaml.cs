@@ -42,7 +42,14 @@ public sealed partial class PeersWindow : Window
             }
             catch { /* best-effort sizing */ }
 
-            AppWindow.Closing += (_, _) => ViewModel.Detach();
+            // Hide rather than close so the window can be re-shown without recreating it.
+            // StopBrowsing() pauses mDNS while the window is not visible.
+            AppWindow.Closing += (_, args) =>
+            {
+                args.Cancel = true;
+                ViewModel.StopBrowsing();
+                AppWindow.Hide();
+            };
         }
     }
 
