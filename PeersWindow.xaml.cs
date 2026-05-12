@@ -73,6 +73,26 @@ public sealed partial class PeersWindow : Window
             ViewModel.RemoveSavedPeer(peer);
     }
 
+    /// <summary>
+    /// Pre-fills the "Add peer" form with the discovered peer's details so the user
+    /// can optionally enter a bearer token before saving.
+    /// </summary>
+    private void AddDiscoveredPeerButton_Click(object sender, RoutedEventArgs e)
+    {
+        if ((sender as Button)?.Tag is not PeerEntry peer) return;
+
+        AddNameBox.Text      = peer.Name;
+        AddHostBox.Text      = peer.Host;
+        AddPortBox.Value     = peer.Port;
+        AddTokenBox.Password = "";
+
+        // Give focus to the token field so the user can immediately type a token,
+        // or just press Enter / click Add to save without one.
+        AddTokenBox.Focus(FocusState.Programmatic);
+
+        ViewModel.StatusMessage = $"Review details for {peer.Name}, then click Add.";
+    }
+
     private void AddPeerButton_Click(object sender, RoutedEventArgs e)
     {
         var name  = AddNameBox.Text;

@@ -39,7 +39,6 @@
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="*"/>
                             <ColumnDefinition Width="Auto"/>
-                            <ColumnDefinition Width="Auto"/>
                         </Grid.ColumnDefinitions>
                         <StackPanel Grid.Column="0" VerticalAlignment="Center">
                             <TextBlock Text="{x:Bind Name}" FontWeight="SemiBold"/>
@@ -47,14 +46,9 @@
                                        Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>
                         </StackPanel>
                         <Button Grid.Column="1"
-                                Content="Send Clipboard"
+                                Content="Add to Peers"
                                 Tag="{x:Bind}"
-                                Click="SendClipboardButton_Click"
-                                VerticalAlignment="Center"/>
-                        <Button Grid.Column="2"
-                                Content="Send File"
-                                Tag="{x:Bind}"
-                                Click="SendFileButton_Click"
+                                Click="AddDiscoveredPeerButton_Click"
                                 VerticalAlignment="Center"/>
                     </Grid>
                 </DataTemplate>
