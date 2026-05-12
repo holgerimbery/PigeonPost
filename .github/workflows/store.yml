@@ -47,7 +47,6 @@ on:
   push:
     tags:
       - "v*"
-  workflow_dispatch:
 
 permissions:
   contents: write   # needed to upload assets to the GitHub Release
@@ -80,13 +79,8 @@ jobs:
         id: version
         shell: pwsh
         run: |
-          $tag = "${{ github.ref_name }}"            # e.g. v1.5.0 or 'main'
-          if ($tag -match '^v\d+\.\d+') {
-            $ver = $tag.TrimStart('v')               # e.g. 1.5.0
-          } else {
-            # workflow_dispatch on a branch — read from csproj
-            $ver = (Select-Xml -Path PigeonPost.csproj -XPath '/Project/PropertyGroup/Version').Node.InnerText
-          }
+          $tag  = "${{ github.ref_name }}"           # e.g. v1.5.0
+          $ver  = $tag.TrimStart('v')                # e.g. 1.5.0
           $quad = "$ver.0"                           # e.g. 1.5.0.0 (4-part for MSIX)
           echo "ver=$ver"   >> $env:GITHUB_OUTPUT
           echo "quad=$quad" >> $env:GITHUB_OUTPUT
