@@ -47,6 +47,7 @@ on:
   push:
     tags:
       - "v*"
+  workflow_dispatch:
 
 permissions:
   contents: write   # needed to upload assets to the GitHub Release
