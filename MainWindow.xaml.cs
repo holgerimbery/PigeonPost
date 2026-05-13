@@ -513,9 +513,14 @@ public sealed partial class MainWindow : Window
     /// </summary>
     private void PeersButton_Click(object sender, RoutedEventArgs e)
     {
+        // Mdns and Sender may be null when services failed to start in a headless/restricted
+        // environment (the try/catch in App.OnLaunched silently skips them). Guard here so
+        // clicking the button does not crash the app in those environments.
+        if (App.Mdns is null || App.Sender is null) return;
+
         if (_peersWindow == null)
         {
-            _peersWindow = new PeersWindow(App.State, App.Mdns!, App.Sender!);
+            _peersWindow = new PeersWindow(App.State, App.Mdns, App.Sender);
             _peersWindow.ApplyTheme(RootGrid.RequestedTheme);
         }
 
