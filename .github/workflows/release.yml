@@ -93,6 +93,7 @@ jobs:
             --self-contained true `
             /p:WindowsAppSdkSelfContained=true `
             /p:PublishSingleFile=false `
+            /p:EnableMsixTooling=true `
             /p:Version=$env:PACK_VERSION `
             /p:FileVersion=$env:FILE_VERSION `
             /p:AssemblyVersion=$env:FILE_VERSION `
