@@ -49,6 +49,12 @@ public partial class App : Application
     /// <summary>Sends clipboard text and files to remote PigeonPost peers.</summary>
     public static PeerSendService? Sender { get; private set; }
 
+    /// <summary>Prevents the screensaver / display-off when remote peers send keep-awake pings.</summary>
+    public static KeepAwakeService? KeepAwake { get; private set; }
+
+    /// <summary>Periodically pings remote peers that have <c>KeepAlive</c> enabled.</summary>
+    public static PeerKeepAliveService? PeerKeepAlive { get; private set; }
+
     private MainWindow? _window;
 
     public App()
@@ -113,7 +119,8 @@ public partial class App : Application
         // Start the HTTP listener so remote clients can send files and clipboard data.
         try
         {
-            Listener = new ListenerService(State, _window.DispatcherQueue);
+            KeepAwake = new KeepAwakeService(State);
+            Listener  = new ListenerService(State, _window.DispatcherQueue, KeepAwake);
             Listener.Start();
         }
         catch (Exception ex)
@@ -134,6 +141,10 @@ public partial class App : Application
 
         // HTTP client for pushing clipboard / files to remote PigeonPost peers.
         Sender = new PeerSendService(State);
+
+        // Periodically ping peers that have KeepAlive enabled so their screensaver stays off.
+        PeerKeepAlive = new PeerKeepAliveService(State, Sender);
+        PeerKeepAlive.Start();
 
         // Start the IP monitor; restart the listener and notify the user on change.
         try

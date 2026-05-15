@@ -6,6 +6,7 @@ using System.IO;
 using System.Threading.Tasks;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
+using Microsoft.UI.Xaml.Controls.Primitives;
 using PigeonPost.Models;
 using PigeonPost.Services;
 using PigeonPost.ViewModels;
@@ -78,6 +79,12 @@ public sealed partial class PeersWindow : Window
     {
         if ((sender as Button)?.Tag is PeerEntry peer)
             ViewModel.RemoveSavedPeer(peer);
+    }
+
+    private void KeepAliveToggle_Changed(object sender, RoutedEventArgs e)
+    {
+        if ((sender as ToggleButton)?.Tag is PeerEntry)
+            ViewModel.SavePeers();
     }
 
     private void EditPeerButton_Click(object sender, RoutedEventArgs e)

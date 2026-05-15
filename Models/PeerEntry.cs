@@ -46,6 +46,15 @@ public sealed partial class PeerEntry : ObservableObject
     public string BearerToken { get; set; } = "";
 
     /// <summary>
+    /// When <c>true</c> this PC periodically sends a <c>keepawake: ping</c> request to
+    /// this peer so the remote PigeonPost server can prevent its screensaver and display-off
+    /// (the remote machine must also have <c>AllowKeepAwake</c> enabled in its Settings).
+    /// Persisted to <c>settings.json</c>.
+    /// </summary>
+    [ObservableProperty]
+    private bool _keepAlive;
+
+    /// <summary>
     /// <c>true</c> when this entry was auto-discovered via mDNS rather than added manually.
     /// Not persisted — entries are rebuilt from live mDNS traffic each session.
     /// </summary>

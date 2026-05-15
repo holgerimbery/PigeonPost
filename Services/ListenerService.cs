@@ -32,6 +32,7 @@ public sealed class ListenerService : IDisposable
 {
     private readonly AppState _state;
     private readonly DispatcherQueue _ui;
+    private readonly KeepAwakeService? _keepAwake;
     // Not readonly: after a failed Start() the HttpListener is left in an unusable state
     // and must be replaced with a fresh instance for the localhost-only fallback retry.
     private HttpListener _listener = new();
@@ -39,10 +40,12 @@ public sealed class ListenerService : IDisposable
 
     /// <param name="state">Shared application state (counters, pause flag, log event).</param>
     /// <param name="ui">UI dispatcher used to marshal clipboard calls onto the UI thread.</param>
-    public ListenerService(AppState state, DispatcherQueue ui)
+    /// <param name="keepAwake">Optional keep-awake service; activated by <c>keepawake: ping</c> requests.</param>
+    public ListenerService(AppState state, DispatcherQueue ui, KeepAwakeService? keepAwake = null)
     {
-        _state = state;
-        _ui    = ui;
+        _state     = state;
+        _ui        = ui;
+        _keepAwake = keepAwake;
     }
 
     // ----------------------------------------------------------------- start / stop
@@ -293,6 +296,13 @@ public sealed class ListenerService : IDisposable
                 return;
             }
 
+            var keepawakeAction = ctx.Request.Headers["keepawake"];
+            if (!string.IsNullOrEmpty(keepawakeAction))
+            {
+                await HandleKeepAwakeAsync(ctx, keepawakeAction);
+                return;
+            }
+
             // Accept filename from header OR query string (?filename=...).
             // Query-string values are URL-encoded by iOS Shortcuts and decoded automatically
             // by HttpListenerRequest, so special characters (spaces, umlauts, timestamps)
@@ -368,6 +378,42 @@ public sealed class ListenerService : IDisposable
             default:
                 _state.Emit(LogLevel.Error, $"Invalid clipboard action: {action}");
                 await WriteAsync(ctx, 400, "Invalid clipboard action");
+                break;
+        }
+    }
+
+    // --------------------------------------------------------------- keep-awake handler
+
+    /// <summary>
+    /// Handles keep-awake requests (<c>keepawake: ping</c> / <c>keepawake: stop</c>).
+    /// The receiver must have opted in via <see cref="AppSettings.AllowKeepAwake"/>;
+    /// if not, returns 403 so the sender can log a meaningful message.
+    /// </summary>
+    private async Task HandleKeepAwakeAsync(HttpListenerContext ctx, string action)
+    {
+        if (!SettingsService.Current.AllowKeepAwake)
+        {
+            _state.Emit(LogLevel.Warn, "Keep-awake request rejected — not enabled in Settings");
+            await WriteAsync(ctx, 403, "Keep-awake not enabled on this server");
+            return;
+        }
+
+        switch (action.ToLowerInvariant())
+        {
+            case "ping":
+                _keepAwake?.Ping();
+                await WriteAsync(ctx, 200, "OK");
+                break;
+
+            case "stop":
+                _keepAwake?.Disable();
+                _state.Emit(LogLevel.Info, "Keep-awake: stopped by remote peer");
+                await WriteAsync(ctx, 200, "Keep-awake stopped");
+                break;
+
+            default:
+                _state.Emit(LogLevel.Error, $"Invalid keepawake action: {action}");
+                await WriteAsync(ctx, 400, "Invalid keepawake action");
                 break;
         }
     }

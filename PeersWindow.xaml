@@ -75,6 +75,7 @@
                             <ColumnDefinition Width="Auto"/>
                             <ColumnDefinition Width="Auto"/>
                             <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition Width="Auto"/>
                         </Grid.ColumnDefinitions>
                         <StackPanel Grid.Column="0" VerticalAlignment="Center">
                             <TextBlock Text="{x:Bind Name, Mode=OneWay}" FontWeight="SemiBold"/>
@@ -91,14 +92,29 @@
                                 Tag="{x:Bind}"
                                 Click="SendFileButton_Click"
                                 VerticalAlignment="Center"/>
-                        <Button Grid.Column="3"
+                        <!--
+                            Keep-awake toggle: when ON this PC will periodically ping the peer
+                            so the remote PigeonPost server can prevent its screensaver.
+                            The remote peer must have "Allow peers to keep this PC awake" enabled
+                            in its Settings, otherwise pings are rejected with HTTP 403.
+                        -->
+                        <ToggleButton Grid.Column="3"
+                                      IsChecked="{x:Bind KeepAlive, Mode=TwoWay}"
+                                      Tag="{x:Bind}"
+                                      VerticalAlignment="Center"
+                                      Checked="KeepAliveToggle_Changed"
+                                      Unchecked="KeepAliveToggle_Changed"
+                                      ToolTipService.ToolTip="Keep this peer's screen awake (peer must opt in via Settings)">
+                            <FontIcon Glyph="&#xE706;" FontSize="14"/>
+                        </ToggleButton>
+                        <Button Grid.Column="4"
                                 Tag="{x:Bind}"
                                 Click="EditPeerButton_Click"
                                 VerticalAlignment="Center"
                                 ToolTipService.ToolTip="Edit peer">
                             <FontIcon Glyph="&#xE70F;" FontSize="14"/>
                         </Button>
-                        <Button Grid.Column="4"
+                        <Button Grid.Column="5"
                                 Tag="{x:Bind}"
                                 Click="RemovePeerButton_Click"
                                 VerticalAlignment="Center"

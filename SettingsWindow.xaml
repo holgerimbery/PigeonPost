@@ -114,7 +114,22 @@
                 <Rectangle Height="1" Margin="0,4"
                            Fill="{ThemeResource DividerStrokeColorDefaultBrush}" Opacity="0.4"/>
 
-                <!-- ── Updates ──────────────────────────────────────── -->
+                <Rectangle Height="1" Margin="0,4"
+                           Fill="{ThemeResource DividerStrokeColorDefaultBrush}" Opacity="0.4"/>
+
+                <!-- ── Keep Awake ────────────────────────────────────────── -->
+                <TextBlock Text="Keep Awake" FontWeight="SemiBold" FontSize="14"
+                           Foreground="{ThemeResource TextFillColorPrimaryBrush}"/>
+
+                <ToggleSwitch x:Name="AllowKeepAwakeSwitch"
+                              Header="Allow peers to keep this PC awake"
+                              OffContent="" OnContent=""
+                              MinWidth="0"/>
+
+                <TextBlock Text="When enabled, remote PigeonPost peers can send periodic pings to prevent the screensaver and display-off on this PC. If no ping arrives within 90 seconds, normal sleep behaviour is automatically restored."
+                           FontSize="11" Opacity="0.7" TextWrapping="Wrap"/>
+
+                <!-- ── Updates ──────────────────────────────────────────── -->
                 <!--
                     UpdatesSection is hidden at runtime in the Store/MSIX build
                     (SettingsWindow.xaml.cs constructor, #if STORE_BUILD guard).

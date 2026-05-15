@@ -67,6 +67,7 @@ public sealed partial class SettingsWindow : Window
         DownloadsFolderBox.Text   = SettingsService.Current.DownloadsFolder;
         RequireAuthSwitch.IsOn    = SettingsService.Current.AuthEnabled;
         AuthTokenBox.Text         = SettingsService.Current.AuthToken;
+        AllowKeepAwakeSwitch.IsOn = SettingsService.Current.AllowKeepAwake;
 
         // Select the matching theme radio without triggering the live-preview handler.
         ThemeRadios.SelectionChanged -= ThemeRadios_SelectionChanged;
@@ -108,6 +109,7 @@ public sealed partial class SettingsWindow : Window
         SettingsService.Current.Theme              = SelectedThemeTag();
         SettingsService.Current.AuthEnabled        = RequireAuthSwitch.IsOn;
         SettingsService.Current.AuthToken          = AuthTokenBox.Text;
+        SettingsService.Current.AllowKeepAwake     = AllowKeepAwakeSwitch.IsOn;
 #if !STORE_BUILD
         SettingsService.Current.IncludeBetaUpdates = IncludeBetaSwitch.IsOn;
 #endif
