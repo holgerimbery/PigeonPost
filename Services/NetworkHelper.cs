@@ -53,6 +53,7 @@ public static class NetworkHelper
                 if (ua.Address.AddressFamily != AddressFamily.InterNetwork) continue;
 
                 var ip = ua.Address.ToString();
+                if (IsTailscaleIp(ip)) continue;   // exclude Tailscale overlay IPs
                 if (nic.NetworkInterfaceType == NetworkInterfaceType.Wireless80211)
                     wifiIp ??= ip;     // first Wi-Fi address wins
                 else
