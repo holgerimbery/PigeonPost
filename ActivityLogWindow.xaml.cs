@@ -39,7 +39,7 @@ public sealed partial class ActivityLogWindow : Window
         ViewModel = viewModel;
         InitializeComponent();
 
-        try { AppWindow?.Resize(new Windows.Graphics.SizeInt32(860, 560)); }
+        try { AppWindow?.Resize(new Windows.Graphics.SizeInt32(960, 560)); }
         catch { /* AppWindow unavailable in some test hosts */ }
 
         // Populate initial filtered list and badge.
