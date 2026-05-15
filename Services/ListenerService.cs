@@ -3,6 +3,7 @@
 
 using System;
 using System.IO;
+using System.Linq;
 using System.Net;
 using System.Text;
 using System.Text.Json;
@@ -386,15 +387,45 @@ public sealed class ListenerService : IDisposable
 
     /// <summary>
     /// Handles keep-awake requests (<c>keepawake: ping</c> / <c>keepawake: stop</c>).
-    /// The receiver must have opted in via <see cref="AppSettings.AllowKeepAwake"/>;
-    /// if not, returns 403 so the sender can log a meaningful message.
+    /// Two conditions must both be true before the request is honoured:
+    /// <list type="number">
+    ///   <item>The receiver's <see cref="AppSettings.AllowKeepAwake"/> master toggle is on.</item>
+    ///   <item>The sender's machine name (from the <c>keepawake-sender</c> header) appears in
+    ///         <see cref="AppSettings.KeepAwakeSenders"/>.</item>
+    /// </list>
+    /// Returns 403 with a descriptive message when either check fails.
     /// </summary>
     private async Task HandleKeepAwakeAsync(HttpListenerContext ctx, string action)
     {
-        if (!SettingsService.Current.AllowKeepAwake)
+        var settings = SettingsService.Current;
+
+        if (!settings.AllowKeepAwake)
         {
             _state.Emit(LogLevel.Warn, "Keep-awake request rejected — not enabled in Settings");
             await WriteAsync(ctx, 403, "Keep-awake not enabled on this server");
+            return;
+        }
+
+        // Read the sender's self-reported machine name.
+        var sender = ctx.Request.Headers["keepawake-sender"] ?? string.Empty;
+
+        // Empty whitelist means no one is authorised even when the master toggle is on.
+        if (settings.KeepAwakeSenders.Count == 0)
+        {
+            _state.Emit(LogLevel.Warn,
+                $"Keep-awake request from '{sender}' rejected — no senders are whitelisted");
+            await WriteAsync(ctx, 403, "No keep-awake senders are authorised on this server");
+            return;
+        }
+
+        var authorised = settings.KeepAwakeSenders
+            .Any(s => s.Equals(sender, StringComparison.OrdinalIgnoreCase));
+
+        if (!authorised)
+        {
+            _state.Emit(LogLevel.Warn,
+                $"Keep-awake request rejected — '{sender}' is not in the allowed-senders list");
+            await WriteAsync(ctx, 403, $"Sender '{sender}' is not authorised");
             return;
         }
 
@@ -407,7 +438,7 @@ public sealed class ListenerService : IDisposable
 
             case "stop":
                 _keepAwake?.Disable();
-                _state.Emit(LogLevel.Info, "Keep-awake: stopped by remote peer");
+                _state.Emit(LogLevel.Info, $"Keep-awake: stopped by {sender}");
                 await WriteAsync(ctx, 200, "Keep-awake stopped");
                 break;
 

@@ -53,6 +53,14 @@ public class AppSettings
     public bool AllowKeepAwake { get; set; } = false;
 
     /// <summary>
+    /// Whitelist of machine names (e.g. <c>DESKTOP-ABC</c>) that are allowed to send
+    /// keep-awake pings to this PC. Only evaluated when <see cref="AllowKeepAwake"/>
+    /// is <c>true</c>. An empty list means no sender is authorised even if the master
+    /// toggle is on.
+    /// </summary>
+    public List<string> KeepAwakeSenders { get; set; } = [];
+
+    /// <summary>
     /// Remote PigeonPost peers this PC can push clipboard content and files to.
     /// Bearer tokens are encrypted with Windows DPAPI at rest; the plaintext
     /// <see cref="PeerEntry.BearerToken"/> is populated at runtime after loading.

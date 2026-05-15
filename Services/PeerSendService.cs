@@ -108,9 +108,9 @@ public sealed class PeerSendService : IDisposable
     /// <summary>
     /// Sends a keep-awake ping to <paramref name="peer"/> via
     /// <c>POST / {keepawake: ping}</c>.
-    /// The remote server will call <see cref="KeepAwakeService.Ping"/> to prevent sleep
-    /// only when its <see cref="AppSettings.AllowKeepAwake"/> flag is enabled; otherwise
-    /// it returns 403 which the caller logs as a warning.
+    /// Includes a <c>keepawake-sender</c> header with this machine's name so the
+    /// remote server can verify the sender against its whitelist before honouring
+    /// the request.
     /// </summary>
     /// <returns><c>(true, "")</c> on HTTP 2xx; <c>(false, errorMessage)</c> on any error.</returns>
     public async Task<(bool Ok, string Error)> SendKeepAliveAsync(PeerEntry peer)
@@ -120,6 +120,7 @@ public sealed class PeerSendService : IDisposable
             using var req = BuildRequest(peer);
             req.Method  = HttpMethod.Post;
             req.Headers.Add("keepawake", "ping");
+            req.Headers.Add("keepawake-sender", Environment.MachineName);
             req.Content = new StringContent(string.Empty);
 
             using var resp = await _http.SendAsync(req).ConfigureAwait(false);
