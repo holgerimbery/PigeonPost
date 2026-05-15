@@ -19,127 +19,138 @@
 
         <!-- ── Scrollable settings content ── -->
         <ScrollViewer Grid.Row="0" VerticalScrollBarVisibility="Auto">
-            <StackPanel Spacing="20" Width="380" Padding="0,8,0,8">
+            <StackPanel Spacing="6" Padding="0,4,0,4">
 
                 <!-- ── General ──────────────────────────────────────── -->
-                <TextBlock Text="General" FontWeight="SemiBold" FontSize="14"
-                           Foreground="{ThemeResource TextFillColorPrimaryBrush}"/>
-
-                <ToggleSwitch x:Name="AutostartSwitch"
-                              Header="Start with Windows"
-                              OffContent="" OnContent=""
-                              MinWidth="0"/>
-
-                <Rectangle Height="1" Margin="0,4"
-                           Fill="{ThemeResource DividerStrokeColorDefaultBrush}" Opacity="0.4"/>
+                <Expander IsExpanded="False"
+                          HorizontalAlignment="Stretch"
+                          HorizontalContentAlignment="Stretch">
+                    <Expander.Header>
+                        <TextBlock Text="⚙️  General" FontWeight="SemiBold" FontSize="13"/>
+                    </Expander.Header>
+                    <StackPanel Spacing="16" Padding="4,8,4,8">
+                        <ToggleSwitch x:Name="AutostartSwitch"
+                                      Header="Start with Windows"
+                                      OffContent="" OnContent=""
+                                      MinWidth="0"/>
+                    </StackPanel>
+                </Expander>
 
                 <!-- ── Files ────────────────────────────────────────── -->
-                <TextBlock Text="Files" FontWeight="SemiBold" FontSize="14"
-                           Foreground="{ThemeResource TextFillColorPrimaryBrush}"/>
-
-                <StackPanel Spacing="6">
-                    <TextBlock Text="Save received files to" Opacity="0.7" FontSize="12"/>
-                    <Grid ColumnSpacing="8">
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="*"/>
-                            <ColumnDefinition Width="Auto"/>
-                        </Grid.ColumnDefinitions>
-                        <TextBox x:Name="DownloadsFolderBox" Grid.Column="0"
-                                 IsReadOnly="True" FontFamily="Consolas" FontSize="12"/>
-                        <Button x:Name="BrowseButton" Grid.Column="1"
-                                Content="Browse" VerticalAlignment="Bottom"
-                                Click="BrowseButton_Click"/>
-                    </Grid>
-                </StackPanel>
-
-                <Rectangle Height="1" Margin="0,4"
-                           Fill="{ThemeResource DividerStrokeColorDefaultBrush}" Opacity="0.4"/>
+                <Expander IsExpanded="False"
+                          HorizontalAlignment="Stretch"
+                          HorizontalContentAlignment="Stretch">
+                    <Expander.Header>
+                        <TextBlock Text="📁  Files" FontWeight="SemiBold" FontSize="13"/>
+                    </Expander.Header>
+                    <StackPanel Spacing="6" Padding="4,8,4,8">
+                        <TextBlock Text="Save received files to" Opacity="0.7" FontSize="12"/>
+                        <Grid ColumnSpacing="8">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+                            <TextBox x:Name="DownloadsFolderBox" Grid.Column="0"
+                                     IsReadOnly="True" FontFamily="Consolas" FontSize="12"/>
+                            <Button x:Name="BrowseButton" Grid.Column="1"
+                                    Content="Browse" VerticalAlignment="Bottom"
+                                    Click="BrowseButton_Click"/>
+                        </Grid>
+                    </StackPanel>
+                </Expander>
 
                 <!-- ── Appearance ────────────────────────────────────── -->
-                <TextBlock Text="Appearance" FontWeight="SemiBold" FontSize="14"
-                           Foreground="{ThemeResource TextFillColorPrimaryBrush}"/>
-
                 <!--
                     Three theme options; selecting one applies the change immediately so the
                     user gets a live preview — Cancel reverts the theme to what it was before
                     the window was opened.
                 -->
-                <RadioButtons x:Name="ThemeRadios"
-                              SelectionChanged="ThemeRadios_SelectionChanged">
-                    <RadioButtons.Header>
-                        <TextBlock Text="Theme" FontSize="12"
-                                   Foreground="{ThemeResource TextFillColorPrimaryBrush}"/>
-                    </RadioButtons.Header>
-                    <RadioButton Content="☀️  Light"           Tag="Light"/>
-                    <RadioButton Content="🌙  Dark"            Tag="Dark"/>
-                    <RadioButton Content="🖥️  Follow Windows"  Tag="System"/>
-                </RadioButtons>
-
-                <Rectangle Height="1" Margin="0,4"
-                           Fill="{ThemeResource DividerStrokeColorDefaultBrush}" Opacity="0.4"/>
+                <Expander IsExpanded="False"
+                          HorizontalAlignment="Stretch"
+                          HorizontalContentAlignment="Stretch">
+                    <Expander.Header>
+                        <TextBlock Text="🎨  Appearance" FontWeight="SemiBold" FontSize="13"/>
+                    </Expander.Header>
+                    <StackPanel Spacing="16" Padding="4,8,4,8">
+                        <RadioButtons x:Name="ThemeRadios"
+                                      SelectionChanged="ThemeRadios_SelectionChanged">
+                            <RadioButtons.Header>
+                                <TextBlock Text="Theme" FontSize="12"
+                                           Foreground="{ThemeResource TextFillColorPrimaryBrush}"/>
+                            </RadioButtons.Header>
+                            <RadioButton Content="☀️  Light"           Tag="Light"/>
+                            <RadioButton Content="🌙  Dark"            Tag="Dark"/>
+                            <RadioButton Content="🖥️  Follow Windows"  Tag="System"/>
+                        </RadioButtons>
+                    </StackPanel>
+                </Expander>
 
                 <!-- ── Security ──────────────────────────────────────── -->
-                <TextBlock Text="Security" FontWeight="SemiBold" FontSize="14"
-                           Foreground="{ThemeResource TextFillColorPrimaryBrush}"/>
-
-                <ToggleSwitch x:Name="RequireAuthSwitch"
-                              Header="Require bearer token authentication"
-                              OffContent="" OnContent=""
-                              MinWidth="0"/>
-
-                <StackPanel Spacing="6">
-                    <TextBlock Text="Bearer token (send in Authorization header)" Opacity="0.7" FontSize="12"/>
-                    <Grid ColumnSpacing="8">
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="*"/>
-                            <ColumnDefinition Width="Auto"/>
-                            <ColumnDefinition Width="Auto"/>
-                        </Grid.ColumnDefinitions>
-                        <TextBox x:Name="AuthTokenBox" Grid.Column="0"
-                                 IsReadOnly="True" FontFamily="Consolas" FontSize="11"
-                                 TextWrapping="NoWrap"/>
-                        <Button x:Name="CopyTokenButton" Grid.Column="1"
-                                ToolTipService.ToolTip="Copy token to clipboard"
-                                VerticalAlignment="Bottom"
-                                Click="CopyTokenButton_Click">
-                            <FontIcon Glyph="&#xE8C8;" FontSize="14"/>
-                        </Button>
-                        <Button x:Name="RegenerateTokenButton" Grid.Column="2"
-                                Content="Regenerate"
-                                VerticalAlignment="Bottom"
-                                Click="RegenerateTokenButton_Click"/>
-                    </Grid>
-                </StackPanel>
-
-                <Rectangle Height="1" Margin="0,4"
-                           Fill="{ThemeResource DividerStrokeColorDefaultBrush}" Opacity="0.4"/>
+                <Expander IsExpanded="False"
+                          HorizontalAlignment="Stretch"
+                          HorizontalContentAlignment="Stretch">
+                    <Expander.Header>
+                        <TextBlock Text="🔒  Security" FontWeight="SemiBold" FontSize="13"/>
+                    </Expander.Header>
+                    <StackPanel Spacing="16" Padding="4,8,4,8">
+                        <ToggleSwitch x:Name="RequireAuthSwitch"
+                                      Header="Require bearer token authentication"
+                                      OffContent="" OnContent=""
+                                      MinWidth="0"/>
+                        <StackPanel Spacing="6">
+                            <TextBlock Text="Bearer token (send in Authorization header)"
+                                       Opacity="0.7" FontSize="12"/>
+                            <Grid ColumnSpacing="8">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                </Grid.ColumnDefinitions>
+                                <TextBox x:Name="AuthTokenBox" Grid.Column="0"
+                                         IsReadOnly="True" FontFamily="Consolas" FontSize="11"
+                                         TextWrapping="NoWrap"/>
+                                <Button x:Name="CopyTokenButton" Grid.Column="1"
+                                        ToolTipService.ToolTip="Copy token to clipboard"
+                                        VerticalAlignment="Bottom"
+                                        Click="CopyTokenButton_Click">
+                                    <FontIcon Glyph="&#xE8C8;" FontSize="14"/>
+                                </Button>
+                                <Button x:Name="RegenerateTokenButton" Grid.Column="2"
+                                        Content="Regenerate" VerticalAlignment="Bottom"
+                                        Click="RegenerateTokenButton_Click"/>
+                            </Grid>
+                        </StackPanel>
+                    </StackPanel>
+                </Expander>
 
                 <!-- ── Keep Awake ────────────────────────────────────────── -->
-                <TextBlock Text="Keep Awake" FontWeight="SemiBold" FontSize="14"
-                           Foreground="{ThemeResource TextFillColorPrimaryBrush}"/>
-
-                <ToggleSwitch x:Name="AllowKeepAwakeSwitch"
-                              Header="Allow peers to keep this PC awake"
-                              OffContent="" OnContent=""
-                              MinWidth="0"/>
-
-                <TextBlock Text="When enabled, only the peers listed below can send periodic pings to prevent the screensaver and display-off on this PC. If no ping arrives within 90 seconds, normal sleep behaviour is automatically restored."
-                           FontSize="11" Opacity="0.7" TextWrapping="Wrap"/>
-
-                <TextBlock Text="Allowed senders (one machine name per line)"
-                           FontSize="12"
-                           Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>
-
-                <TextBox x:Name="SenderNamesBox"
-                         AcceptsReturn="True"
-                         Height="90"
-                         ScrollViewer.VerticalScrollBarVisibility="Auto"
-                         PlaceholderText="DESKTOP-ABC&#x0a;LAPTOP-XYZ"
-                         FontFamily="Consolas"
-                         FontSize="12"/>
-
-                <TextBlock Text="Leave empty to block all keep-awake requests even when the toggle above is on."
-                           FontSize="11" Opacity="0.7" TextWrapping="Wrap"/>
+                <Expander IsExpanded="False"
+                          HorizontalAlignment="Stretch"
+                          HorizontalContentAlignment="Stretch">
+                    <Expander.Header>
+                        <TextBlock Text="💡  Keep Awake" FontWeight="SemiBold" FontSize="13"/>
+                    </Expander.Header>
+                    <StackPanel Spacing="12" Padding="4,8,4,8">
+                        <ToggleSwitch x:Name="AllowKeepAwakeSwitch"
+                                      Header="Allow peers to keep this PC awake"
+                                      OffContent="" OnContent=""
+                                      MinWidth="0"/>
+                        <TextBlock Text="When enabled, only the peers listed below can send periodic pings to prevent the screensaver and display-off on this PC. If no ping arrives within 90 seconds, normal sleep behaviour is automatically restored."
+                                   FontSize="11" Opacity="0.7" TextWrapping="Wrap"/>
+                        <TextBlock Text="Allowed senders (one machine name per line)"
+                                   FontSize="12"
+                                   Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>
+                        <TextBox x:Name="SenderNamesBox"
+                                 AcceptsReturn="True"
+                                 Height="90"
+                                 ScrollViewer.VerticalScrollBarVisibility="Auto"
+                                 PlaceholderText="DESKTOP-ABC&#x0a;LAPTOP-XYZ"
+                                 FontFamily="Consolas"
+                                 FontSize="12"/>
+                        <TextBlock Text="Leave empty to block all keep-awake requests even when the toggle above is on."
+                                   FontSize="11" Opacity="0.7" TextWrapping="Wrap"/>
+                    </StackPanel>
+                </Expander>
 
                 <!-- ── Updates ──────────────────────────────────────────── -->
                 <!--
@@ -147,27 +158,29 @@
                     (SettingsWindow.xaml.cs constructor, #if STORE_BUILD guard).
                     Updates are managed by the Microsoft Store in that channel.
                 -->
-                <StackPanel x:Name="UpdatesSection" Spacing="20">
-
-                    <TextBlock Text="Updates" FontWeight="SemiBold" FontSize="14"
-                               Foreground="{ThemeResource TextFillColorPrimaryBrush}"/>
-
-                    <ToggleSwitch x:Name="IncludeBetaSwitch"
-                                  Header="Include beta releases"
-                                  OffContent="" OnContent=""
-                                  MinWidth="0"/>
-
-                    <StackPanel Spacing="8">
-                        <Button x:Name="CheckUpdateButton"
-                                Content="Check for Updates"
-                                Click="CheckUpdateButton_Click"/>
-                        <TextBlock x:Name="UpdateStatusText"
-                                   FontSize="12" Opacity="0.8"
-                                   TextWrapping="Wrap"
-                                   Visibility="Collapsed"/>
+                <Expander x:Name="UpdatesSection"
+                          IsExpanded="False"
+                          HorizontalAlignment="Stretch"
+                          HorizontalContentAlignment="Stretch">
+                    <Expander.Header>
+                        <TextBlock Text="🔄  Updates" FontWeight="SemiBold" FontSize="13"/>
+                    </Expander.Header>
+                    <StackPanel Spacing="16" Padding="4,8,4,8">
+                        <ToggleSwitch x:Name="IncludeBetaSwitch"
+                                      Header="Include beta releases"
+                                      OffContent="" OnContent=""
+                                      MinWidth="0"/>
+                        <StackPanel Spacing="8">
+                            <Button x:Name="CheckUpdateButton"
+                                    Content="Check for Updates"
+                                    Click="CheckUpdateButton_Click"/>
+                            <TextBlock x:Name="UpdateStatusText"
+                                       FontSize="12" Opacity="0.8"
+                                       TextWrapping="Wrap"
+                                       Visibility="Collapsed"/>
+                        </StackPanel>
                     </StackPanel>
-
-                </StackPanel>
+                </Expander>
 
             </StackPanel>
         </ScrollViewer>

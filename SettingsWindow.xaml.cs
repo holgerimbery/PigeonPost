@@ -51,7 +51,7 @@ public sealed partial class SettingsWindow : Window
 
         InitializeComponent();
 
-        try { AppWindow?.Resize(new Windows.Graphics.SizeInt32(460, 660)); }
+        try { AppWindow?.Resize(new Windows.Graphics.SizeInt32(460, 480)); }
         catch { /* AppWindow unavailable in some test hosts */ }
 
         // Pre-populate controls from current settings.
