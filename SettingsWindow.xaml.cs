@@ -51,7 +51,7 @@ public sealed partial class SettingsWindow : Window
 
         InitializeComponent();
 
-        try { AppWindow?.Resize(new Windows.Graphics.SizeInt32(460, 480)); }
+        try { AppWindow?.Resize(new Windows.Graphics.SizeInt32(520, 520)); }
         catch { /* AppWindow unavailable in some test hosts */ }
 
         // Pre-populate controls from current settings.
@@ -67,7 +67,7 @@ public sealed partial class SettingsWindow : Window
 #endif
         DownloadsFolderBox.Text   = SettingsService.Current.DownloadsFolder;
         RequireAuthSwitch.IsOn    = SettingsService.Current.AuthEnabled;
-        AuthTokenBox.Text         = SettingsService.Current.AuthToken;
+        AuthTokenBox.Password     = SettingsService.Current.AuthToken;
         AllowKeepAwakeSwitch.IsOn            = SettingsService.Current.AllowKeepAwake;
         SenderNamesBox.Text                  = string.Join("\n", SettingsService.Current.KeepAwakeSenders);
         ExcludeVirtualAdaptersSwitch.IsOn    = SettingsService.Current.ExcludeVirtualAdapters;
@@ -111,7 +111,7 @@ public sealed partial class SettingsWindow : Window
         SettingsService.Current.DownloadsFolder    = DownloadsFolderBox.Text;
         SettingsService.Current.Theme              = SelectedThemeTag();
         SettingsService.Current.AuthEnabled        = RequireAuthSwitch.IsOn;
-        SettingsService.Current.AuthToken          = AuthTokenBox.Text;
+        SettingsService.Current.AuthToken          = AuthTokenBox.Password;
         SettingsService.Current.AllowKeepAwake            = AllowKeepAwakeSwitch.IsOn;
         SettingsService.Current.KeepAwakeSenders           =
             [.. SenderNamesBox.Text
@@ -230,15 +230,27 @@ public sealed partial class SettingsWindow : Window
     private void CopyTokenButton_Click(object sender, RoutedEventArgs e)
     {
         var dp = new DataPackage();
-        dp.SetText(AuthTokenBox.Text);
+        dp.SetText(AuthTokenBox.Password);
         Clipboard.SetContent(dp);
     }
 
     private void RegenerateTokenButton_Click(object sender, RoutedEventArgs e)
     {
         var newToken = SettingsService.GenerateToken();
-        AuthTokenBox.Text                 = newToken;
+        AuthTokenBox.Password             = newToken;
         SettingsService.Current.AuthToken = newToken;
+    }
+
+    private void RevealTokenButton_Checked(object sender, RoutedEventArgs e)
+    {
+        AuthTokenBox.PasswordRevealMode = PasswordRevealMode.Visible;
+        RevealTokenIcon.Glyph = "\uED1A"; // eye-hide glyph
+    }
+
+    private void RevealTokenButton_Unchecked(object sender, RoutedEventArgs e)
+    {
+        AuthTokenBox.PasswordRevealMode = PasswordRevealMode.Hidden;
+        RevealTokenIcon.Glyph = "\uE7B3"; // eye glyph
     }
 
     // ── Helpers ───────────────────────────────────────────────────────────────

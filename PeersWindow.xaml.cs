@@ -36,7 +36,7 @@ public sealed partial class PeersWindow : Window
             {
                 var scale = GetScaleFactor();
                 AppWindow.Resize(new Windows.Graphics.SizeInt32(
-                    (int)(580 * scale), (int)(480 * scale)));
+                    (int)(680 * scale), (int)(480 * scale)));
 
                 if (AppWindow.Presenter is Microsoft.UI.Windowing.OverlappedPresenter op)
                     op.IsMaximizable = false;
