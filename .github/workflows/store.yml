@@ -39,6 +39,10 @@
 # ── How to release ────────────────────────────────────────────────────────────
 #   git tag v1.5.0 -m "Release 1.5.0"
 #   git push origin v1.5.0
+#
+# Beta / pre-release tags (any tag whose name contains "beta") skip all Store
+# jobs so only stable releases are submitted to the Microsoft Store.
+# Example: v1.5.0-beta.1 → GitHub Release + Velopack feed only; no MSIX / Store.
 # ─────────────────────────────────────────────────────────────────────────────
 
 name: Store
@@ -56,7 +60,8 @@ jobs:
   # ── Build MSIX packages (x64 and ARM64) ────────────────────────────────────
   store-build:
     name: Build MSIX (${{ matrix.platform }})
-    if: ${{ vars.STORE_ENABLED == 'true' }}
+    # Skip entirely for beta tags — Store and winget receive stable releases only.
+    if: ${{ vars.STORE_ENABLED == 'true' && !contains(github.ref_name, 'beta') }}
     runs-on: windows-latest
 
     strategy:
@@ -156,7 +161,7 @@ jobs:
   store-bundle:
     name: Bundle MSIX
     needs: store-build
-    if: ${{ vars.STORE_ENABLED == 'true' }}
+    if: ${{ vars.STORE_ENABLED == 'true' && !contains(github.ref_name, 'beta') }}
     runs-on: windows-latest
 
     steps:
@@ -214,7 +219,7 @@ jobs:
   store-submit:
     name: Submit to Partner Center
     needs: store-bundle
-    if: ${{ vars.STORE_SUBMIT_ENABLED == 'true' }}
+    if: ${{ vars.STORE_SUBMIT_ENABLED == 'true' && !contains(github.ref_name, 'beta') }}
     runs-on: windows-latest
 
     steps:

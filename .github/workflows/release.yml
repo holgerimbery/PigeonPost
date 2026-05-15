@@ -31,6 +31,10 @@
 # How to release:
 #   git tag v1.1.0 -m "Release 1.1.0"
 #   git push origin v1.1.0
+#
+# Beta / pre-release tags (any tag whose name contains "beta") skip the winget
+# manifest update so only stable releases appear in the winget catalogue.
+# Example: v1.5.0-beta.1 → GitHub Release + Velopack feed only; no winget PR.
 
 name: Release
 
@@ -133,12 +137,10 @@ jobs:
     name: Update winget manifest
     needs: build
     runs-on: ubuntu-latest
-    # Only runs when WINGET_ENABLED variable is set to 'true'.
-    # Set this in repo Settings → Secrets and variables → Actions → Variables
-    # after configuring WINGET_TOKEN secret and forking microsoft/winget-pkgs.
-    # Note: secrets cannot be referenced in job-level if conditions (GitHub limitation),
-    # so a companion variable is used as the gate instead.
-    if: ${{ vars.WINGET_ENABLED == 'true' }}
+    # Only runs when WINGET_ENABLED variable is set to 'true' AND the tag is not
+    # a pre-release (beta) tag. Beta builds are published to GitHub Releases for
+    # in-app update testing only; winget users should only receive stable releases.
+    if: ${{ vars.WINGET_ENABLED == 'true' && !contains(github.ref_name, 'beta') }}
     steps:
       - name: Update winget manifest
         uses: vedantmgoyal9/winget-releaser@v2
