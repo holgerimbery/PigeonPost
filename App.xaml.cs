@@ -215,6 +215,7 @@ public partial class App : Application
         {
             // ── No connectivity ──────────────────────────────────────────────
             case NetworkChangeKind.WentOffline:
+                ViewModel?.UpdateListenAddress("127.0.0.1", NetworkInterfaceKind.None);
                 State.Emit(LogLevel.Error,
                     $"Network lost ({KindLabel(e.PreviousKind)} was {e.PreviousIp}) · " +
                     "Server paused — waiting for network to return.");
@@ -228,7 +229,7 @@ public partial class App : Application
             case NetworkChangeKind.CameOnline:
                 Listener?.Restart();
                 Mdns?.Restart();
-                ViewModel?.UpdateListenAddress(e.NewIp);
+                ViewModel?.UpdateListenAddress(e.NewIp, e.NewKind);
                 State.Emit(LogLevel.Warn,
                     $"Network restored ({KindLabel(e.NewKind)} {e.NewIp}) · Server restarted.");
                 ShowToast(
@@ -241,7 +242,7 @@ public partial class App : Application
             case NetworkChangeKind.InterfaceSwitched:
                 Listener?.Restart();
                 Mdns?.Restart();
-                ViewModel?.UpdateListenAddress(e.NewIp);
+                ViewModel?.UpdateListenAddress(e.NewIp, e.NewKind);
                 State.Emit(LogLevel.Warn,
                     $"Interface switched: {KindLabel(e.PreviousKind)} ({e.PreviousIp}) → " +
                     $"{KindLabel(e.NewKind)} ({e.NewIp}) · Server restarted.");
@@ -255,9 +256,9 @@ public partial class App : Application
             case NetworkChangeKind.IpChanged:
                 Listener?.Restart();
                 Mdns?.Restart();
-                ViewModel?.UpdateListenAddress(e.NewIp);
+                ViewModel?.UpdateListenAddress(e.NewIp, e.NewKind);
                 State.Emit(LogLevel.Warn,
-                    $"{KindLabel(e.NewKind)} IP changed: {e.PreviousIp} → {e.NewIp} · " +
+                    $"{KindLabel(e.NewKind)} IP changed: {e.PreviousIp} → {e.NewIp} · "+
                     "Server restarted.");
                 ShowToast(
                     $"📡 PigeonPost — {KindLabel(e.NewKind)} IP Changed",

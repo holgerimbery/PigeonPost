@@ -65,6 +65,23 @@ public partial class MainViewModel : ObservableObject
     /// <summary>Formatted address shown in the address card (e.g. "http://192.168.1.5:2560").</summary>
     [ObservableProperty] private string _listenAddress = "";
 
+    /// <summary>
+    /// Current network interface kind (Wi-Fi, Ethernet, or None when offline).
+    /// Drives <see cref="InterfaceKindLabel"/>.
+    /// </summary>
+    [ObservableProperty] private NetworkInterfaceKind _networkKind = NetworkInterfaceKind.None;
+
+    /// <summary>
+    /// Human-readable label for the active network interface, shown beside the listen address.
+    /// Returns "(Wi-Fi)", "(Ethernet)", or "(Offline)" depending on <see cref="NetworkKind"/>.
+    /// </summary>
+    public string InterfaceKindLabel => NetworkKind switch
+    {
+        NetworkInterfaceKind.WiFi     => "(Wi-Fi)",
+        NetworkInterfaceKind.Ethernet => "(Ethernet)",
+        _                             => "(Offline)",
+    };
+
     /// <summary>Live count of log entries shown as a badge on the Activity log header.</summary>
     [ObservableProperty] private string _logCount = "0";
 
@@ -112,7 +129,10 @@ public partial class MainViewModel : ObservableObject
         _state = state;
         _ui    = ui;
 
-        ListenAddress    = $"http://{NetworkHelper.GetNetworkState().Ip}:{Constants.Port}";
+        var (ip, kind)   = NetworkHelper.GetNetworkState();
+        ListenAddress    = $"http://{ip}:{Constants.Port}";
+        NetworkKind      = kind;
+        OnPropertyChanged(nameof(InterfaceKindLabel));
 
         // Initialise Tailscale state from the current network snapshot.
         var tsIp = NetworkHelper.GetTailscaleIp();
@@ -133,11 +153,17 @@ public partial class MainViewModel : ObservableObject
     // ---------------------------------------------------------------- public helpers
 
     /// <summary>
-    /// Updates the listen-address card to reflect a new IP after a network change.
+    /// Updates the listen-address card to reflect a new IP and interface kind after a network change.
+    /// Pass <see cref="NetworkInterfaceKind.None"/> when the machine has gone offline.
     /// Safe to call from any thread — marshals to the UI thread internally.
     /// </summary>
-    public void UpdateListenAddress(string newIp) =>
-        _ui.TryEnqueue(() => ListenAddress = $"http://{newIp}:{Constants.Port}");
+    public void UpdateListenAddress(string newIp, NetworkInterfaceKind kind) =>
+        _ui.TryEnqueue(() =>
+        {
+            ListenAddress = $"http://{newIp}:{Constants.Port}";
+            NetworkKind   = kind;
+            OnPropertyChanged(nameof(InterfaceKindLabel));
+        });
 
     /// <summary>
     /// Updates the Tailscale address row. Pass <c>null</c> to hide the row (Tailscale disconnected).

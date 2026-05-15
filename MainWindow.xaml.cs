@@ -543,7 +543,24 @@ public sealed partial class MainWindow : Window
         _settingsWindow?.Close();
 
         _settingsWindow = new SettingsWindow(theme => ApplyTheme(theme));
-        _settingsWindow.SettingsSaved += (_, _) => ViewModel.RefreshDownloadsLine();
+
+        // Capture the filter state before the dialog opens so we can detect a change on save.
+        var prevExcludeVirtual = SettingsService.Current.ExcludeVirtualAdapters;
+
+        _settingsWindow.SettingsSaved += (_, _) =>
+        {
+            ViewModel.RefreshDownloadsLine();
+
+            // If the virtual-adapter exclusion toggled, re-evaluate the network state and
+            // restart the listener so it binds to the correct address.
+            if (SettingsService.Current.ExcludeVirtualAdapters != prevExcludeVirtual)
+            {
+                var (newIp, newKind) = NetworkHelper.GetNetworkState();
+                App.Listener?.Restart();
+                App.Mdns?.Restart();
+                ViewModel.UpdateListenAddress(newIp, newKind);
+            }
+        };
 
         // Apply the current theme so the window matches immediately.
         _settingsWindow.ApplyTheme(RootGrid.RequestedTheme);

@@ -39,6 +39,15 @@ public class AppSettings
     public string AuthToken { get; set; } = string.Empty;
 
     /// <summary>
+    /// When <c>true</c> virtual network adapters created by hypervisors (Hyper-V, VMware,
+    /// VirtualBox) are excluded from the listen-address selection and the HTTP listener
+    /// binding, so those adapters' IPs are never shown or used.
+    /// Defaults to <c>true</c>; can be turned off in Settings if a virtual adapter's
+    /// address is intentionally needed.
+    /// </summary>
+    public bool ExcludeVirtualAdapters { get; set; } = true;
+
+    /// <summary>
     /// When <c>true</c> the update check also considers pre-release (beta) builds.
     /// Defaults to <c>false</c> so normal users only receive stable releases.
     /// </summary>
