@@ -124,11 +124,23 @@
                 </Grid.RowDefinitions>
 
                 <!-- Row 0: active listen address -->
-                <StackPanel Grid.Row="0" Orientation="Horizontal" Spacing="8">
+                <!--
+                    Displays the primary local IPv4 address that the HTTP server is bound to.
+                    Selection priority (from NetworkHelper.GetNetworkState):
+                      1. Wi-Fi adapter   — preferred when both Wi-Fi and Ethernet are active
+                      2. Ethernet adapter — used when Wi-Fi is not available
+                      3. 127.0.0.1       — fallback when the machine is offline
+                    The address and interface label update automatically when the network changes.
+                -->
+                <StackPanel Grid.Row="0" Orientation="Horizontal" Spacing="8"
+                            ToolTipService.ToolTip="Your primary local network address. Wi-Fi is preferred over Ethernet when both are active. Shows 127.0.0.1 (loopback) when offline.">
                     <TextBlock Text="Listening on" Opacity="0.6" VerticalAlignment="Center"/>
                     <TextBlock Text="{x:Bind ViewModel.ListenAddress, Mode=OneWay}"
                                FontFamily="Consolas" FontWeight="SemiBold"
                                Foreground="{ThemeResource AccentTextFillColorPrimaryBrush}"
+                               VerticalAlignment="Center"/>
+                    <TextBlock Text="{x:Bind ViewModel.InterfaceKindLabel, Mode=OneWay}"
+                               Opacity="0.55" FontSize="12"
                                VerticalAlignment="Center"/>
                 </StackPanel>
 
@@ -139,8 +151,15 @@
                            ToolTipService.ToolTip="{x:Bind ViewModel.DownloadsLine, Mode=OneWay}"/>
 
                 <!-- Row 2: Tailscale address — shown only when Tailscale is connected -->
+                <!--
+                    Displays the Tailscale overlay IPv4 address (100.64.x.x – 100.127.x.x range).
+                    Visible only when Tailscale is running and has assigned a CGNAT address.
+                    Allows remote access from any device on the same Tailscale network.
+                    Hidden automatically when Tailscale disconnects.
+                -->
                 <StackPanel Grid.Row="2" Orientation="Horizontal" Spacing="8"
-                            Visibility="{x:Bind ViewModel.TailscaleAddressVisibility, Mode=OneWay}">
+                            Visibility="{x:Bind ViewModel.TailscaleAddressVisibility, Mode=OneWay}"
+                            ToolTipService.ToolTip="Tailscale overlay address (100.x.x.x range). Shown only when Tailscale is connected. Use this URL to reach PigeonPost from any device on your Tailscale network.">
                     <TextBlock Text="Tailscale" Opacity="0.6" VerticalAlignment="Center"/>
                     <TextBlock Text="{x:Bind ViewModel.TailscaleAddress, Mode=OneWay}"
                                FontFamily="Consolas" FontWeight="SemiBold"
