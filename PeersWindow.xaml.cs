@@ -36,7 +36,7 @@ public sealed partial class PeersWindow : Window
             {
                 var scale = GetScaleFactor();
                 AppWindow.Resize(new Windows.Graphics.SizeInt32(
-                    (int)(580 * scale), (int)(700 * scale)));
+                    (int)(580 * scale), (int)(480 * scale)));
 
                 if (AppWindow.Presenter is Microsoft.UI.Windowing.OverlappedPresenter op)
                     op.IsMaximizable = false;
@@ -131,6 +131,7 @@ public sealed partial class PeersWindow : Window
         AddPeerButton.Visibility     = Visibility.Collapsed;
         SaveEditButton.Visibility    = Visibility.Visible;
         CancelEditButton.Visibility  = Visibility.Visible;
+        AddPeerExpander.IsExpanded   = true;
 
         AddNameBox.Focus(FocusState.Programmatic);
         ViewModel.StatusMessage = $"Editing {peer.Name} — update fields and click Save.";
@@ -164,8 +165,9 @@ public sealed partial class PeersWindow : Window
         AddPortBox.Value     = peer.Port;
         AddTokenBox.Password = "";
 
-        // Give focus to the token field so the user can immediately type a token,
-        // or just press Enter / click Add to save without one.
+        // Expand the form and give focus to the token field so the user can immediately
+        // type a token, or just press Enter / click Add to save without one.
+        AddPeerExpander.IsExpanded = true;
         AddTokenBox.Focus(FocusState.Programmatic);
 
         ViewModel.StatusMessage = $"Review details for {peer.Name}, then click Add.";
