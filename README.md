@@ -48,15 +48,17 @@ step-by-step setup instructions are in the [iOS Shortcuts wiki page](https://git
 - **Collapsible activity log** with colour-coded entries that adapt to the current theme
 - **Pause / Resume** — keeps the port open but returns `503` to all incoming requests
 - **Open Downloads** button
-- **Settings dialog** (⚙️ gear button) — configure the downloads folder, choose Light / Dark / System theme, toggle Start with Windows, enable bearer-token authentication
+- **Settings dialog** (⚙️ gear button) — configure the downloads folder, choose Light / Dark / System theme, toggle Start with Windows, enable bearer-token authentication, configure Network (virtual adapter filtering), Keep-awake whitelist, and beta update channel
 - **Bearer token authentication** — optional; generate a random token once, copy it to any client, toggle enforcement on/off without restarting the server
 - **Help button** (❓) — opens the GitHub repository documentation in your default browser
 - **Minimize to tray** — the close button hides the window; left-click the icon to restore
 - **Tray context menu**: Show window · Pause / Resume · Quit
 - **Start with Windows** — optional autostart toggle; app launches hidden to tray
-- **Smart network monitoring** — detects WiFi ↔ LAN switches, IP changes, and offline events; restarts the listener automatically on relevant changes
+- **Smart network monitoring** — detects WiFi ↔ LAN switches, IP changes, and offline events; restarts the listener automatically on relevant changes; shows interface type `(Wi-Fi)` / `(Ethernet)` / `(Offline)` next to the listen address
+- **Virtual adapter filtering** — automatically excludes Hyper-V, VMware, and VirtualBox virtual adapters from IP selection; configurable in **Settings → Network**
 - **mDNS / Bonjour auto-discovery** — advertises the server as `_pigeonpost._tcp` on the local network so the iOS companion app can find your PC automatically without typing an IP address
 - **PC-to-PC Peers** — push clipboard text or files directly to other PigeonPost instances on the same network; peers are auto-discovered via mDNS, optionally secured with a bearer token, and saved for quick reuse
+- **Keep Awake** — allow trusted peer PCs to prevent sleep / screensaver via `keepawake: ping`; configurable whitelist in **Settings → Keep-awake**
 - **Auto-update** — checks GitHub Releases on startup and every 24 hours; shows an in-app banner when a new version is available; one click installs and restarts
 
 ---
