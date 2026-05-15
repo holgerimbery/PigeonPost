@@ -3,6 +3,7 @@
 
 using System;
 using System.IO;
+using System.Linq;
 using System.Net;
 using System.Text;
 using System.Text.Json;
@@ -32,6 +33,7 @@ public sealed class ListenerService : IDisposable
 {
     private readonly AppState _state;
     private readonly DispatcherQueue _ui;
+    private readonly KeepAwakeService? _keepAwake;
     // Not readonly: after a failed Start() the HttpListener is left in an unusable state
     // and must be replaced with a fresh instance for the localhost-only fallback retry.
     private HttpListener _listener = new();
@@ -39,10 +41,12 @@ public sealed class ListenerService : IDisposable
 
     /// <param name="state">Shared application state (counters, pause flag, log event).</param>
     /// <param name="ui">UI dispatcher used to marshal clipboard calls onto the UI thread.</param>
-    public ListenerService(AppState state, DispatcherQueue ui)
+    /// <param name="keepAwake">Optional keep-awake service; activated by <c>keepawake: ping</c> requests.</param>
+    public ListenerService(AppState state, DispatcherQueue ui, KeepAwakeService? keepAwake = null)
     {
-        _state = state;
-        _ui    = ui;
+        _state     = state;
+        _ui        = ui;
+        _keepAwake = keepAwake;
     }
 
     // ----------------------------------------------------------------- start / stop
@@ -293,6 +297,13 @@ public sealed class ListenerService : IDisposable
                 return;
             }
 
+            var keepawakeAction = ctx.Request.Headers["keepawake"];
+            if (!string.IsNullOrEmpty(keepawakeAction))
+            {
+                await HandleKeepAwakeAsync(ctx, keepawakeAction);
+                return;
+            }
+
             // Accept filename from header OR query string (?filename=...).
             // Query-string values are URL-encoded by iOS Shortcuts and decoded automatically
             // by HttpListenerRequest, so special characters (spaces, umlauts, timestamps)
@@ -368,6 +379,72 @@ public sealed class ListenerService : IDisposable
             default:
                 _state.Emit(LogLevel.Error, $"Invalid clipboard action: {action}");
                 await WriteAsync(ctx, 400, "Invalid clipboard action");
+                break;
+        }
+    }
+
+    // --------------------------------------------------------------- keep-awake handler
+
+    /// <summary>
+    /// Handles keep-awake requests (<c>keepawake: ping</c> / <c>keepawake: stop</c>).
+    /// Two conditions must both be true before the request is honoured:
+    /// <list type="number">
+    ///   <item>The receiver's <see cref="AppSettings.AllowKeepAwake"/> master toggle is on.</item>
+    ///   <item>The sender's machine name (from the <c>keepawake-sender</c> header) appears in
+    ///         <see cref="AppSettings.KeepAwakeSenders"/>.</item>
+    /// </list>
+    /// Returns 403 with a descriptive message when either check fails.
+    /// </summary>
+    private async Task HandleKeepAwakeAsync(HttpListenerContext ctx, string action)
+    {
+        var settings = SettingsService.Current;
+
+        if (!settings.AllowKeepAwake)
+        {
+            _state.Emit(LogLevel.Warn, "Keep-awake request rejected — not enabled in Settings");
+            await WriteAsync(ctx, 403, "Keep-awake not enabled on this server");
+            return;
+        }
+
+        // Read the sender's self-reported machine name.
+        var sender = ctx.Request.Headers["keepawake-sender"] ?? string.Empty;
+
+        // Empty whitelist means no one is authorised even when the master toggle is on.
+        if (settings.KeepAwakeSenders.Count == 0)
+        {
+            _state.Emit(LogLevel.Warn,
+                $"Keep-awake request from '{sender}' rejected — no senders are whitelisted");
+            await WriteAsync(ctx, 403, "No keep-awake senders are authorised on this server");
+            return;
+        }
+
+        var authorised = settings.KeepAwakeSenders
+            .Any(s => s.Equals(sender, StringComparison.OrdinalIgnoreCase));
+
+        if (!authorised)
+        {
+            _state.Emit(LogLevel.Warn,
+                $"Keep-awake request rejected — '{sender}' is not in the allowed-senders list");
+            await WriteAsync(ctx, 403, $"Sender '{sender}' is not authorised");
+            return;
+        }
+
+        switch (action.ToLowerInvariant())
+        {
+            case "ping":
+                _keepAwake?.Ping();
+                await WriteAsync(ctx, 200, "OK");
+                break;
+
+            case "stop":
+                _keepAwake?.Disable();
+                _state.Emit(LogLevel.Info, $"Keep-awake: stopped by {sender}");
+                await WriteAsync(ctx, 200, "Keep-awake stopped");
+                break;
+
+            default:
+                _state.Emit(LogLevel.Error, $"Invalid keepawake action: {action}");
+                await WriteAsync(ctx, 400, "Invalid keepawake action");
                 break;
         }
     }

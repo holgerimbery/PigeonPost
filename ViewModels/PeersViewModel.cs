@@ -212,6 +212,9 @@ public sealed partial class PeersViewModel : ObservableObject
         StatusMessage = $"Updated peer {peer.Name}";
     }
 
+    /// <summary>Persists the current peer list (including KeepAlive flags) to disk.</summary>
+    public void SavePeers() => SettingsService.Save();
+
     // ---------------------------------------------------------------- cleanup
 
     /// <summary>Stops browsing and unsubscribes from mDNS events. Call when the window is closed.</summary>

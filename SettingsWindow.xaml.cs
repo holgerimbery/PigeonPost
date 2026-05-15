@@ -2,6 +2,7 @@
 // Licensed under the MIT License. See LICENSE in the project root for license information.
 
 using System;
+using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
@@ -50,7 +51,7 @@ public sealed partial class SettingsWindow : Window
 
         InitializeComponent();
 
-        try { AppWindow?.Resize(new Windows.Graphics.SizeInt32(460, 660)); }
+        try { AppWindow?.Resize(new Windows.Graphics.SizeInt32(460, 480)); }
         catch { /* AppWindow unavailable in some test hosts */ }
 
         // Pre-populate controls from current settings.
@@ -67,6 +68,8 @@ public sealed partial class SettingsWindow : Window
         DownloadsFolderBox.Text   = SettingsService.Current.DownloadsFolder;
         RequireAuthSwitch.IsOn    = SettingsService.Current.AuthEnabled;
         AuthTokenBox.Text         = SettingsService.Current.AuthToken;
+        AllowKeepAwakeSwitch.IsOn = SettingsService.Current.AllowKeepAwake;
+        SenderNamesBox.Text       = string.Join("\n", SettingsService.Current.KeepAwakeSenders);
 
         // Select the matching theme radio without triggering the live-preview handler.
         ThemeRadios.SelectionChanged -= ThemeRadios_SelectionChanged;
@@ -108,6 +111,11 @@ public sealed partial class SettingsWindow : Window
         SettingsService.Current.Theme              = SelectedThemeTag();
         SettingsService.Current.AuthEnabled        = RequireAuthSwitch.IsOn;
         SettingsService.Current.AuthToken          = AuthTokenBox.Text;
+        SettingsService.Current.AllowKeepAwake     = AllowKeepAwakeSwitch.IsOn;
+        SettingsService.Current.KeepAwakeSenders   =
+            [.. SenderNamesBox.Text
+                .Split('\n', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+                .Where(s => s.Length > 0)];
 #if !STORE_BUILD
         SettingsService.Current.IncludeBetaUpdates = IncludeBetaSwitch.IsOn;
 #endif

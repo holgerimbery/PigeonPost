@@ -105,6 +105,34 @@ public sealed class PeerSendService : IDisposable
         }
     }
 
+    /// <summary>
+    /// Sends a keep-awake ping to <paramref name="peer"/> via
+    /// <c>POST / {keepawake: ping}</c>.
+    /// Includes a <c>keepawake-sender</c> header with this machine's name so the
+    /// remote server can verify the sender against its whitelist before honouring
+    /// the request.
+    /// </summary>
+    /// <returns><c>(true, "")</c> on HTTP 2xx; <c>(false, errorMessage)</c> on any error.</returns>
+    public async Task<(bool Ok, string Error)> SendKeepAliveAsync(PeerEntry peer)
+    {
+        try
+        {
+            using var req = BuildRequest(peer);
+            req.Method  = HttpMethod.Post;
+            req.Headers.Add("keepawake", "ping");
+            req.Headers.Add("keepawake-sender", Environment.MachineName);
+            req.Content = new StringContent(string.Empty);
+
+            using var resp = await _http.SendAsync(req).ConfigureAwait(false);
+            var ok = resp.IsSuccessStatusCode;
+            return ok ? (true, "") : (false, $"HTTP {(int)resp.StatusCode}");
+        }
+        catch (Exception ex)
+        {
+            return (false, ex.Message);
+        }
+    }
+
     // ----------------------------------------------------------------- helpers
 
     /// <summary>
