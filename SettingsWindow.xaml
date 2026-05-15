@@ -26,7 +26,7 @@
                           HorizontalAlignment="Stretch"
                           HorizontalContentAlignment="Stretch">
                     <Expander.Header>
-                        <TextBlock Text="⚙️  General" FontWeight="SemiBold" FontSize="13"/>
+                        <TextBlock Text="General" FontWeight="SemiBold" FontSize="13"/>
                     </Expander.Header>
                     <StackPanel Spacing="16" Padding="4,8,4,8">
                         <ToggleSwitch x:Name="AutostartSwitch"
@@ -41,7 +41,7 @@
                           HorizontalAlignment="Stretch"
                           HorizontalContentAlignment="Stretch">
                     <Expander.Header>
-                        <TextBlock Text="📁  Files" FontWeight="SemiBold" FontSize="13"/>
+                        <TextBlock Text="Files" FontWeight="SemiBold" FontSize="13"/>
                     </Expander.Header>
                     <StackPanel Spacing="6" Padding="4,8,4,8">
                         <TextBlock Text="Save received files to" Opacity="0.7" FontSize="12"/>
@@ -69,7 +69,7 @@
                           HorizontalAlignment="Stretch"
                           HorizontalContentAlignment="Stretch">
                     <Expander.Header>
-                        <TextBlock Text="🎨  Appearance" FontWeight="SemiBold" FontSize="13"/>
+                        <TextBlock Text="Appearance" FontWeight="SemiBold" FontSize="13"/>
                     </Expander.Header>
                     <StackPanel Spacing="16" Padding="4,8,4,8">
                         <RadioButtons x:Name="ThemeRadios"
@@ -78,9 +78,9 @@
                                 <TextBlock Text="Theme" FontSize="12"
                                            Foreground="{ThemeResource TextFillColorPrimaryBrush}"/>
                             </RadioButtons.Header>
-                            <RadioButton Content="☀️  Light"           Tag="Light"/>
-                            <RadioButton Content="🌙  Dark"            Tag="Dark"/>
-                            <RadioButton Content="🖥️  Follow Windows"  Tag="System"/>
+                            <RadioButton Content="Light"           Tag="Light"/>
+                            <RadioButton Content="Dark"            Tag="Dark"/>
+                            <RadioButton Content="Follow Windows"  Tag="System"/>
                         </RadioButtons>
                     </StackPanel>
                 </Expander>
@@ -90,7 +90,7 @@
                           HorizontalAlignment="Stretch"
                           HorizontalContentAlignment="Stretch">
                     <Expander.Header>
-                        <TextBlock Text="🔒  Security" FontWeight="SemiBold" FontSize="13"/>
+                        <TextBlock Text="Security" FontWeight="SemiBold" FontSize="13"/>
                     </Expander.Header>
                     <StackPanel Spacing="16" Padding="4,8,4,8">
                         <ToggleSwitch x:Name="RequireAuthSwitch"
@@ -128,7 +128,7 @@
                           HorizontalAlignment="Stretch"
                           HorizontalContentAlignment="Stretch">
                     <Expander.Header>
-                        <TextBlock Text="💡  Keep Awake" FontWeight="SemiBold" FontSize="13"/>
+                        <TextBlock Text="Keep Awake" FontWeight="SemiBold" FontSize="13"/>
                     </Expander.Header>
                     <StackPanel Spacing="12" Padding="4,8,4,8">
                         <ToggleSwitch x:Name="AllowKeepAwakeSwitch"
@@ -163,7 +163,7 @@
                           HorizontalAlignment="Stretch"
                           HorizontalContentAlignment="Stretch">
                     <Expander.Header>
-                        <TextBlock Text="🔄  Updates" FontWeight="SemiBold" FontSize="13"/>
+                        <TextBlock Text="Updates" FontWeight="SemiBold" FontSize="13"/>
                     </Expander.Header>
                     <StackPanel Spacing="16" Padding="4,8,4,8">
                         <ToggleSwitch x:Name="IncludeBetaSwitch"
