@@ -51,7 +51,12 @@ public sealed partial class SettingsWindow : Window
 
         InitializeComponent();
 
-        try { AppWindow?.Resize(new Windows.Graphics.SizeInt32(520, 520)); }
+        try
+        {
+            var scale = GetScaleFactor();
+            AppWindow?.Resize(new Windows.Graphics.SizeInt32(
+                (int)(520 * scale), (int)(580 * scale)));
+        }
         catch { /* AppWindow unavailable in some test hosts */ }
 
         // Pre-populate controls from current settings.
@@ -254,6 +259,19 @@ public sealed partial class SettingsWindow : Window
     }
 
     // ── Helpers ───────────────────────────────────────────────────────────────
+
+    [System.Runtime.InteropServices.DllImport("user32.dll")]
+    private static extern uint GetDpiForWindow(IntPtr hWnd);
+
+    private double GetScaleFactor()
+    {
+        try
+        {
+            var hwnd = WinRT.Interop.WindowNative.GetWindowHandle(this);
+            return GetDpiForWindow(hwnd) / 96.0;
+        }
+        catch { return 1.0; }
+    }
 
     private string SelectedThemeTag() =>
         (ThemeRadios.SelectedItem as RadioButton)?.Tag as string ?? "System";

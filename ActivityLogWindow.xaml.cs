@@ -39,7 +39,12 @@ public sealed partial class ActivityLogWindow : Window
         ViewModel = viewModel;
         InitializeComponent();
 
-        try { AppWindow?.Resize(new Windows.Graphics.SizeInt32(960, 560)); }
+        try
+        {
+            var scale = GetScaleFactor();
+            AppWindow?.Resize(new Windows.Graphics.SizeInt32(
+                (int)(800 * scale), (int)(560 * scale)));
+        }
         catch { /* AppWindow unavailable in some test hosts */ }
 
         // Populate initial filtered list and badge.
@@ -132,4 +137,19 @@ public sealed partial class ActivityLogWindow : Window
 
     private void ClearSearch_Click(object sender, RoutedEventArgs e) =>
         SearchBox.Text = ""; // triggers SearchBox_TextChanged automatically
+
+    // ── Helpers ───────────────────────────────────────────────────────────────
+
+    [System.Runtime.InteropServices.DllImport("user32.dll")]
+    private static extern uint GetDpiForWindow(IntPtr hWnd);
+
+    private double GetScaleFactor()
+    {
+        try
+        {
+            var hwnd = WinRT.Interop.WindowNative.GetWindowHandle(this);
+            return GetDpiForWindow(hwnd) / 96.0;
+        }
+        catch { return 1.0; }
+    }
 }
