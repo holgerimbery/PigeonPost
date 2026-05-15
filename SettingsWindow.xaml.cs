@@ -68,8 +68,9 @@ public sealed partial class SettingsWindow : Window
         DownloadsFolderBox.Text   = SettingsService.Current.DownloadsFolder;
         RequireAuthSwitch.IsOn    = SettingsService.Current.AuthEnabled;
         AuthTokenBox.Text         = SettingsService.Current.AuthToken;
-        AllowKeepAwakeSwitch.IsOn = SettingsService.Current.AllowKeepAwake;
-        SenderNamesBox.Text       = string.Join("\n", SettingsService.Current.KeepAwakeSenders);
+        AllowKeepAwakeSwitch.IsOn            = SettingsService.Current.AllowKeepAwake;
+        SenderNamesBox.Text                  = string.Join("\n", SettingsService.Current.KeepAwakeSenders);
+        ExcludeVirtualAdaptersSwitch.IsOn    = SettingsService.Current.ExcludeVirtualAdapters;
 
         // Select the matching theme radio without triggering the live-preview handler.
         ThemeRadios.SelectionChanged -= ThemeRadios_SelectionChanged;
@@ -111,11 +112,12 @@ public sealed partial class SettingsWindow : Window
         SettingsService.Current.Theme              = SelectedThemeTag();
         SettingsService.Current.AuthEnabled        = RequireAuthSwitch.IsOn;
         SettingsService.Current.AuthToken          = AuthTokenBox.Text;
-        SettingsService.Current.AllowKeepAwake     = AllowKeepAwakeSwitch.IsOn;
-        SettingsService.Current.KeepAwakeSenders   =
+        SettingsService.Current.AllowKeepAwake            = AllowKeepAwakeSwitch.IsOn;
+        SettingsService.Current.KeepAwakeSenders           =
             [.. SenderNamesBox.Text
                 .Split('\n', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
                 .Where(s => s.Length > 0)];
+        SettingsService.Current.ExcludeVirtualAdapters     = ExcludeVirtualAdaptersSwitch.IsOn;
 #if !STORE_BUILD
         SettingsService.Current.IncludeBetaUpdates = IncludeBetaSwitch.IsOn;
 #endif

@@ -152,6 +152,23 @@
                     </StackPanel>
                 </Expander>
 
+                <!-- ── Network ───────────────────────────────────────────── -->
+                <Expander IsExpanded="False"
+                          HorizontalAlignment="Stretch"
+                          HorizontalContentAlignment="Stretch">
+                    <Expander.Header>
+                        <TextBlock Text="Network" FontWeight="SemiBold" FontSize="13"/>
+                    </Expander.Header>
+                    <StackPanel Spacing="12" Padding="4,8,4,8">
+                        <ToggleSwitch x:Name="ExcludeVirtualAdaptersSwitch"
+                                      Header="Exclude virtual network adapters"
+                                      OffContent="" OnContent=""
+                                      MinWidth="0"/>
+                        <TextBlock Text="When enabled, Hyper-V, VMware, and VirtualBox virtual switch adapters are ignored when choosing the listen address and binding the HTTP server. Disable only if you intentionally want PigeonPost to listen on a virtual adapter IP."
+                                   FontSize="11" Opacity="0.7" TextWrapping="Wrap"/>
+                    </StackPanel>
+                </Expander>
+
                 <!-- ── Updates ──────────────────────────────────────────── -->
                 <!--
                     UpdatesSection is hidden at runtime in the Store/MSIX build

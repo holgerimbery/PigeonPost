@@ -46,6 +46,9 @@ public static class NetworkHelper
     /// </summary>
     private static bool IsVirtualAdapter(NetworkInterface nic)
     {
+        // Honour the user's preference — if exclusion is disabled, treat every adapter as real.
+        if (!SettingsService.Current.ExcludeVirtualAdapters) return false;
+
         var name = nic.Name        ?? string.Empty;
         var desc = nic.Description ?? string.Empty;
 
