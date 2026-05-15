@@ -105,17 +105,26 @@
                                     <ColumnDefinition Width="*"/>
                                     <ColumnDefinition Width="Auto"/>
                                     <ColumnDefinition Width="Auto"/>
+                                    <ColumnDefinition Width="Auto"/>
                                 </Grid.ColumnDefinitions>
-                                <TextBox x:Name="AuthTokenBox" Grid.Column="0"
-                                         IsReadOnly="True" FontFamily="Consolas" FontSize="11"
-                                         TextWrapping="NoWrap"/>
-                                <Button x:Name="CopyTokenButton" Grid.Column="1"
+                                <PasswordBox x:Name="AuthTokenBox" Grid.Column="0"
+                                             IsEnabled="False"
+                                             PasswordRevealMode="Hidden"
+                                             FontFamily="Consolas" FontSize="11"/>
+                                <ToggleButton x:Name="RevealTokenButton" Grid.Column="1"
+                                              ToolTipService.ToolTip="Show / hide token"
+                                              VerticalAlignment="Bottom"
+                                              Checked="RevealTokenButton_Checked"
+                                              Unchecked="RevealTokenButton_Unchecked">
+                                    <FontIcon x:Name="RevealTokenIcon" Glyph="&#xE7B3;" FontSize="14"/>
+                                </ToggleButton>
+                                <Button x:Name="CopyTokenButton" Grid.Column="2"
                                         ToolTipService.ToolTip="Copy token to clipboard"
                                         VerticalAlignment="Bottom"
                                         Click="CopyTokenButton_Click">
                                     <FontIcon Glyph="&#xE8C8;" FontSize="14"/>
                                 </Button>
-                                <Button x:Name="RegenerateTokenButton" Grid.Column="2"
+                                <Button x:Name="RegenerateTokenButton" Grid.Column="3"
                                         Content="Regenerate" VerticalAlignment="Bottom"
                                         Click="RegenerateTokenButton_Click"/>
                             </Grid>
