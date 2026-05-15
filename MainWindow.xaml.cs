@@ -471,7 +471,7 @@ public sealed partial class MainWindow : Window
     // ---------------------------------------------------------------- help
 
     /// <summary>
-    /// Opens the PigeonPost GitHub repository in the system default browser.
+    /// Opens the PigeonPost documentation site in the system default browser.
     /// </summary>
     private void HelpButton_Click(object sender, RoutedEventArgs e)
     {
@@ -479,7 +479,7 @@ public sealed partial class MainWindow : Window
         {
             System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo
             {
-                FileName        = "https://github.com/holgerimbery/PigeonPost",
+                FileName        = "https://holgerimbery.github.io/PigeonPost/",
                 UseShellExecute = true,
             });
         }

@@ -13,19 +13,18 @@
         <MicaBackdrop Kind="BaseAlt"/>
     </Window.SystemBackdrop>
 
-    <Grid x:Name="RootGrid" Padding="24" RowSpacing="12">
-        <!--
-            HexColorConverter must live on a FrameworkElement (Grid), not on Window,
-            because the WinUI 3 XAML compiler passes `this` (Window) to SetConverterLookupRoot
-            which expects a FrameworkElement — same constraint as in MainWindow.
-        -->
+    <Grid x:Name="RootGrid" Padding="24" RowSpacing="8">
         <Grid.Resources>
             <conv:HexColorConverter x:Key="HexColorConverter"/>
         </Grid.Resources>
 
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto"/>
+            <!-- Row 0: header (title + badge + Clear) -->
+            <RowDefinition Height="Auto"/>
+            <!-- Row 1: filter bar -->
             <RowDefinition Height="*"/>
+            <!-- Row 2: log list -->
         </Grid.RowDefinitions>
 
         <!-- ── Header: title + badge + Clear ── -->
@@ -34,10 +33,11 @@
                 <TextBlock Text="Activity Log" FontSize="18" FontWeight="SemiBold"
                            Foreground="{ThemeResource AccentTextFillColorPrimaryBrush}"
                            VerticalAlignment="Center"/>
-                <Border CornerRadius="10" Padding="7,1"
+                <!-- Badge managed from code-behind; shows "filtered / total" when a filter is active -->
+                <Border x:Name="LogBadge" CornerRadius="10" Padding="7,1"
                         Background="{ThemeResource AccentFillColorDefaultBrush}"
-                        Visibility="{x:Bind ViewModel.LogCountVisible, Mode=OneWay}">
-                    <TextBlock Text="{x:Bind ViewModel.LogCount, Mode=OneWay}"
+                        Visibility="Collapsed">
+                    <TextBlock x:Name="LogBadgeText"
                                FontSize="11" FontWeight="SemiBold"
                                Foreground="White" VerticalAlignment="Center"/>
                 </Border>
@@ -46,9 +46,46 @@
                     Command="{x:Bind ViewModel.ClearLogCommand}"/>
         </Grid>
 
-        <!-- ── Log list ── -->
-        <ListView Grid.Row="1"
-                  ItemsSource="{x:Bind ViewModel.LogEntries}"
+        <!-- ── Filter bar ── -->
+        <Grid Grid.Row="1">
+            <!-- Level toggle buttons on the left -->
+            <StackPanel Orientation="Horizontal" Spacing="4" VerticalAlignment="Center">
+                <ToggleButton x:Name="FilterInfo"      Content="INFO"      IsChecked="True" Tag="Info"
+                              Padding="8,3" FontFamily="Consolas" FontSize="11"
+                              Checked="LevelToggle_Changed" Unchecked="LevelToggle_Changed"/>
+                <ToggleButton x:Name="FilterSuccess"   Content="OK"        IsChecked="True" Tag="Success"
+                              Padding="8,3" FontFamily="Consolas" FontSize="11"
+                              Checked="LevelToggle_Changed" Unchecked="LevelToggle_Changed"/>
+                <ToggleButton x:Name="FilterWarn"      Content="WARN"      IsChecked="True" Tag="Warn"
+                              Padding="8,3" FontFamily="Consolas" FontSize="11"
+                              Checked="LevelToggle_Changed" Unchecked="LevelToggle_Changed"/>
+                <ToggleButton x:Name="FilterError"     Content="ERROR"     IsChecked="True" Tag="Error"
+                              Padding="8,3" FontFamily="Consolas" FontSize="11"
+                              Checked="LevelToggle_Changed" Unchecked="LevelToggle_Changed"/>
+                <ToggleButton x:Name="FilterFile"      Content="FILE"      IsChecked="True" Tag="File"
+                              Padding="8,3" FontFamily="Consolas" FontSize="11"
+                              Checked="LevelToggle_Changed" Unchecked="LevelToggle_Changed"/>
+                <ToggleButton x:Name="FilterClipboard" Content="CLIPBOARD" IsChecked="True" Tag="Clipboard"
+                              Padding="8,3" FontFamily="Consolas" FontSize="11"
+                              Checked="LevelToggle_Changed" Unchecked="LevelToggle_Changed"/>
+            </StackPanel>
+            <!-- Text search on the right -->
+            <StackPanel Orientation="Horizontal" Spacing="4"
+                        HorizontalAlignment="Right" VerticalAlignment="Center">
+                <TextBox x:Name="SearchBox"
+                         PlaceholderText="Search messages…"
+                         Width="190"
+                         TextChanged="SearchBox_TextChanged"/>
+                <Button ToolTipService.ToolTip="Clear search"
+                        Click="ClearSearch_Click">
+                    <FontIcon Glyph="&#xE894;" FontSize="12"/>
+                </Button>
+            </StackPanel>
+        </Grid>
+
+        <!-- ── Log list (bound to local FilteredEntries) ── -->
+        <ListView Grid.Row="2"
+                  ItemsSource="{x:Bind FilteredEntries}"
                   SelectionMode="None"
                   ScrollViewer.VerticalScrollBarVisibility="Auto"
                   Background="{ThemeResource LayerOnAcrylicFillColorDefaultBrush}"
@@ -63,12 +100,6 @@
                         </Grid.ColumnDefinitions>
                         <TextBlock Text="{x:Bind TimeText}" Opacity="0.5"
                                    FontFamily="Consolas" FontSize="12"/>
-                        <!--
-                            Must use {Binding} (not {x:Bind}) with HexColorConverter here —
-                            same reason as in MainWindow: {x:Bind Converter=} generates
-                            SetConverterLookupRoot(FrameworkElement) but Window is not a
-                            FrameworkElement in WinUI 3, causing a CS1503 compile error.
-                        -->
                         <TextBlock Grid.Column="1" Text="{x:Bind LevelLabel}"
                                    Foreground="{Binding LevelColor, Converter={StaticResource HexColorConverter}}"
                                    FontFamily="Consolas" FontSize="12" FontWeight="SemiBold"/>
