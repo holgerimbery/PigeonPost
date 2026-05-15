@@ -29,12 +29,45 @@ public enum NetworkInterfaceKind
 public static class NetworkHelper
 {
     /// <summary>
+    /// Returns <c>true</c> when <paramref name="nic"/> is a known hypervisor or
+    /// software virtual switch adapter that should be excluded from the listen-address
+    /// selection and listener binding.
+    ///
+    /// <para>Excluded adapter families:</para>
+    /// <list type="bullet">
+    ///   <item><term>Hyper-V</term>     <description>vEthernet adapters created by the Hyper-V Virtual Switch (name starts with "vEthernet" or description contains "Hyper-V Virtual Ethernet").</description></item>
+    ///   <item><term>VMware</term>      <description>Host-only / NAT adapters created by VMware Workstation / Player (description contains "VMware Virtual Ethernet").</description></item>
+    ///   <item><term>VirtualBox</term>  <description>Host-only adapters created by Oracle VirtualBox (description contains "VirtualBox Host-Only").</description></item>
+    /// </list>
+    ///
+    /// <para>
+    /// Real physical Ethernet adapters, Wi-Fi adapters, and Tailscale are not affected.
+    /// </para>
+    /// </summary>
+    private static bool IsVirtualAdapter(NetworkInterface nic)
+    {
+        var name = nic.Name        ?? string.Empty;
+        var desc = nic.Description ?? string.Empty;
+
+        // Hyper-V virtual switch ports — name always starts with "vEthernet"
+        if (name.StartsWith("vEthernet", StringComparison.OrdinalIgnoreCase)) return true;
+
+        // Belt-and-suspenders: match the description as well
+        if (desc.Contains("Hyper-V Virtual Ethernet",  StringComparison.OrdinalIgnoreCase)) return true;
+        if (desc.Contains("VMware Virtual Ethernet",   StringComparison.OrdinalIgnoreCase)) return true;
+        if (desc.Contains("VirtualBox Host-Only",      StringComparison.OrdinalIgnoreCase)) return true;
+
+        return false;
+    }
+
+    /// <summary>
     /// Returns the current primary IPv4 address together with the kind of interface
     /// it belongs to (Wi-Fi, Ethernet, or None when offline).
     ///
     /// <para>
     /// Wi-Fi adapters are preferred when both types are simultaneously active so the
     /// result is deterministic in mixed environments.
+    /// Virtual/hypervisor adapters (Hyper-V, VMware, VirtualBox) are excluded.
     /// </para>
     /// </summary>
     public static (string Ip, NetworkInterfaceKind Kind) GetNetworkState()
@@ -47,6 +80,7 @@ public static class NetworkHelper
             if (nic.OperationalStatus != OperationalStatus.Up) continue;
             if (nic.NetworkInterfaceType == NetworkInterfaceType.Loopback) continue;
             if (nic.NetworkInterfaceType == NetworkInterfaceType.Tunnel) continue;
+            if (IsVirtualAdapter(nic)) continue;   // skip Hyper-V / VMware / VirtualBox vSwitches
 
             foreach (var ua in nic.GetIPProperties().UnicastAddresses)
             {
@@ -85,6 +119,7 @@ public static class NetworkHelper
             // Skip interfaces that are down or are the loopback adapter.
             if (nic.OperationalStatus != OperationalStatus.Up) continue;
             if (nic.NetworkInterfaceType == NetworkInterfaceType.Loopback) continue;
+            if (IsVirtualAdapter(nic)) continue;   // skip Hyper-V / VMware / VirtualBox vSwitches
 
             foreach (var ua in nic.GetIPProperties().UnicastAddresses)
             {
