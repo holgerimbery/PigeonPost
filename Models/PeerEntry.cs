@@ -14,6 +14,10 @@ namespace PigeonPost.Models;
 public sealed partial class PeerEntry : ObservableObject
 {
     /// <summary>Human-readable display name (e.g. the remote machine name).</summary>
+    // MVVMTK0045: partial-property AOT pattern conflicts with the Windows App SDK 2.0
+    // XAML compiler pipeline when building on CI without Visual Studio. Field-based
+    // [ObservableProperty] is fully functional here; suppress for the whole class.
+#pragma warning disable MVVMTK0045
     [ObservableProperty]
     private string _name = "";
 

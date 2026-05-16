@@ -85,7 +85,13 @@ public sealed class ListenerService : IDisposable
         try { _listener.Close(); } catch { /* already dead */ }
         _listener = new HttpListener();
 
+#if !STORE_BUILD
         // ---- Attempt 2: register URL ACL via elevated netsh, then retry ----
+        // Skipped in Store/MSIX builds: the privateNetworkClientServer capability in the
+        // package manifest grants the necessary URL ACL automatically, and spawning a
+        // UAC-elevated netsh process in an automated review environment (no interactive
+        // user) would block for up to 10 s before timing out — making the app appear to
+        // crash at launch.
         if (TryRegisterUrlAcl())
         {
             _listener.Prefixes.Add(WildcardPrefix);
@@ -98,6 +104,7 @@ public sealed class ListenerService : IDisposable
             try { _listener.Close(); } catch { }
             _listener = new HttpListener();
         }
+#endif
 
         // ---- Attempt 3: localhost-only fallback ----
         _listener.Prefixes.Add($"http://localhost:{Constants.Port}/");
@@ -167,12 +174,18 @@ public sealed class ListenerService : IDisposable
         }
         else
         {
+#if STORE_BUILD
+            _state.Emit(LogLevel.Warn,
+                $"Listening on localhost:{Constants.Port} only " +
+                $"(wildcard binding unavailable — LAN access restricted)");
+#else
             _state.Emit(LogLevel.Warn,
                 $"Listening on localhost:{Constants.Port} only " +
                 $"(UAC was declined — LAN access unavailable)");
             _state.Emit(LogLevel.Info,
                 $"To enable LAN access run once as Administrator, or run: " +
                 $"netsh http add urlacl url=http://+:{Constants.Port}/ user=Everyone");
+#endif
         }
         _state.Emit(LogLevel.Info,
             $"Files saved to: {Constants.DownloadsFolder}");
